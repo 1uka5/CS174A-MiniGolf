@@ -4,6 +4,24 @@ const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
 } = tiny;
 
+class Cube extends Shape {
+    constructor() {
+        super("position", "normal",);
+        // Loop 3 times (for each axis), and inside loop twice (for opposing cube sides):
+        this.arrays.position = Vector3.cast(
+            [-1, -1, -1], [1, -1, -1], [-1, -1, 1], [1, -1, 1], [1, 1, -1], [-1, 1, -1], [1, 1, 1], [-1, 1, 1],
+            [-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [-1, 1, 1], [1, -1, 1], [1, -1, -1], [1, 1, 1], [1, 1, -1],
+            [-1, -1, 1], [1, -1, 1], [-1, 1, 1], [1, 1, 1], [1, -1, -1], [-1, -1, -1], [1, 1, -1], [-1, 1, -1]);
+        this.arrays.normal = Vector3.cast(
+            [0, -1, 0], [0, -1, 0], [0, -1, 0], [0, -1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0],
+            [-1, 0, 0], [-1, 0, 0], [-1, 0, 0], [-1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0],
+            [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, -1], [0, 0, -1], [0, 0, -1], [0, 0, -1]);
+        // Arrange the vertices into a square shape in texture space too:
+        this.indices.push(0, 1, 2, 1, 3, 2, 4, 5, 6, 5, 7, 6, 8, 9, 10, 9, 11, 10, 12, 13,
+            14, 13, 15, 14, 16, 17, 18, 17, 19, 18, 20, 21, 22, 21, 23, 22);
+    }
+}
+
 export class Assignment3 extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
@@ -15,8 +33,8 @@ export class Assignment3 extends Scene {
             torus2: new defs.Torus(3, 15),
             sphere: new defs.Subdivision_Sphere(4),
             circle: new defs.Regular_2D_Polygon(1, 15),
-            // TODO:  Fill in as many additional shape instances as needed in this key/value table.
-            //        (Requirement 1)
+            flat_terrain: new Cube(),
+            wall: new Cube()
         };
 
         // *** Materials
@@ -26,8 +44,8 @@ export class Assignment3 extends Scene {
             test2: new Material(new Gouraud_Shader(),
                 {ambient: .4, diffusivity: .6, color: hex_color("#992828")}),
             ring: new Material(new Ring_Shader()),
-            // TODO:  Fill in as many additional material objects as needed in this key/value table.
-            //        (Requirement 4)
+            flat_terrain: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.0, specularity: 0.0, color: hex_color("#30ff30")}),
+            wall: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.2, specularity: 0.0, color: hex_color("#f0f0f0")})
         }
 
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
@@ -62,7 +80,7 @@ export class Assignment3 extends Scene {
         // this.shapes.[XXX].draw([XXX]) // <--example
 
         // TODO: Lighting (Requirement 2)
-        const light_position = vec4(0, 5, 5, 1);
+        const light_position = vec4(0, 5, 0, 1);
         // The parameters of the Light are: position, color, size
         program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
 
@@ -71,7 +89,20 @@ export class Assignment3 extends Scene {
         const yellow = hex_color("#fac91a");
         let model_transform = Mat4.identity();
 
-        this.shapes.torus.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
+        //this.shapes.torus.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
+
+        // Ground
+        let ground_transform = model_transform.times(Mat4.scale(15,0.1,15));
+        this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.flat_terrain);
+        let wall_transform = Mat4.identity();
+        for (let i = 0; i < 4; i++) {
+            wall_transform = wall_transform.times(Mat4.translation(15,0,0));
+            wall_transform = wall_transform.times(Mat4.scale(0.1,1,15.1));
+            this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+            wall_transform = wall_transform.times(Mat4.scale(10,1,1/15.1));
+            wall_transform = wall_transform.times(Mat4.translation(-15,0,0));
+            wall_transform = wall_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
+        }
     }
 }
 
