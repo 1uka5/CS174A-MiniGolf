@@ -135,12 +135,18 @@ export class Assignment3 extends Scene {
         //this.shapes.planet1.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
         //this.shapes.planet2.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
         //this.shapes.planet3.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
-        this.shapes.golfBall.draw(context, program_state, model_transform, this.materials.golfBall);
 
-
+        this.display_golf_ball(context,program_state,model_transform,5,10);
  
     }
+
+    display_golf_ball(context,program_state,golf_model,x,y){
+        golf_model = golf_model.times(Mat4.translation(0,1,0)).times(Mat4.translation(x,0,y));
+
+        this.shapes.golfBall.draw(context, program_state, golf_model, this.materials.golfBall);
+    }
 }
+
 
 
 class Gouraud_Shader extends Shader {
