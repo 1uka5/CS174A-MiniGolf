@@ -4,7 +4,6 @@ import {defs, tiny} from './examples/common.js';
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
 } = tiny;
-
 class Cube extends Shape {
     constructor() {
         super("position", "normal",);
@@ -67,8 +66,9 @@ export class Assignment3 extends Scene {
  
         }
 
-
+        this.animated = true;
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
+        
     }
 
 
@@ -135,14 +135,24 @@ export class Assignment3 extends Scene {
         //this.shapes.planet1.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
         //this.shapes.planet2.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
         //this.shapes.planet3.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
-
-        this.display_golf_ball(context,program_state,model_transform,5,10);
+        this.display_golf_ball(context,program_state,model_transform,t,6,6);
  
     }
 
-    display_golf_ball(context,program_state,golf_model,x,y){
-        golf_model = golf_model.times(Mat4.translation(0,1,0)).times(Mat4.translation(x,0,y));
-
+    //note: the y here refers to z in the xyz plane
+    display_golf_ball(context,program_state,golf_model,time,x,y){
+        
+        golf_model = golf_model.times(Mat4.translation(0,1,0));
+        let saved_model = golf_model;
+        if (this.animated){
+            if (x/2 + Math.sin(time)*x/2 >= x-0.001){
+                this.animated = false;
+            }
+            golf_model = golf_model.times(Mat4.translation(x/2 + Math.sin(time)*x/2,0,y/2 + Math.sin(time)*y/2));
+        }
+        else{
+            golf_model = saved_model.times(Mat4.translation(x,0,y));
+        }
         this.shapes.golfBall.draw(context, program_state, golf_model, this.materials.golfBall);
     }
 }
