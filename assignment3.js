@@ -22,6 +22,93 @@ class Cube extends Shape {
     }
 }
 
+class TwoDGolfHole extends Shape {
+    constructor() {
+        super("position", "normal",);
+        // Loop 3 times (for each axis), and inside loop twice (for opposing cube sides):
+        this.arrays.position = Vector3.cast(
+            [0, 0, -Math.sqrt(2)], [-1, 0, -1], [-Math.sqrt(2), 0, 0],
+            [0, 0, -Math.sqrt(2)], [-Math.sqrt(2), 0, 0], [-1, 0, 1],
+            [0, 0, -Math.sqrt(2)], [-1, 0, 1], [0, 0, Math.sqrt(2)],
+            [0, 0, -Math.sqrt(2)], [0, 0, Math.sqrt(2)], [1, 0, 1],
+            [0, 0, -Math.sqrt(2)], [1, 0, 1], [Math.sqrt(2), 0, 0],
+            [0, 0, -Math.sqrt(2)], [Math.sqrt(2), 0, 0], [1, 0, -1]);
+        this.arrays.normal = Vector3.cast(
+            [0, 1, 0], [0, 1, 0], [0, 1, 0],
+            [0, 1, 0], [0, 1, 0], [0, 1, 0],
+            [0, 1, 0], [0, 1, 0], [0, 1, 0],
+            [0, 1, 0], [0, 1, 0], [0, 1, 0],
+            [0, 1, 0], [0, 1, 0], [0, 1, 0],
+            [0, 1, 0], [0, 1, 0], [0, 1, 0]);
+        // Cube normals = sets of 4, each correspond to outward of the face?
+        // Arrange the vertices into a square shape in texture space too:
+        this.indices.push(0, 1, 2,
+            3, 4, 5,
+            6, 7, 8,
+            9, 10, 11,
+            12, 13, 14,
+            15, 16, 17);
+    }
+}
+
+class ThreeDGolfHoleCorner extends Shape {
+    constructor() {
+        super("position", "normal",);
+        // Messed up CCW on many of these sorry
+        // Missing bottom
+        this.arrays.position = Vector3.cast(
+            // Insides
+            [0, 0, -Math.sqrt(2)], [-0.5, -1, -0.5], [0, -1, -Math.sqrt(2)/2],
+            [0, 0, -Math.sqrt(2)], [-1, 0, -1], [-0.5, -1, -0.5],
+            [-1, 0, -1], [-Math.sqrt(2)/2, -1, 0], [-0.5, -1, -0.5],
+            [-1, 0, -1], [-Math.sqrt(2), 0, 0], [-Math.sqrt(2)/2, -1, 0],
+            [0, -1, -Math.sqrt(2)/2], [-0.5, -1, -0.5], [0, -1.5, 0],
+            [-0.5, -1, -0.5], [-Math.sqrt(2)/2, -1, 0], [0, -1.5, 0],
+            // Outsides
+            [0, -1.5, -Math.sqrt(2)], [-1, 0, -1], [0, 0, -Math.sqrt(2)],
+            [0, -1.5, -Math.sqrt(2)], [-1, -1.5, -1], [-1, 0, -1],
+            [-1, -1.5, -1], [-Math.sqrt(2), 0, 0], [-1, 0, -1],
+            [-1, -1.5, -1], [-Math.sqrt(2), -1.5, 0], [-Math.sqrt(2), 0, 0],
+            // Not seen in final golf hole
+            [0, -1.5, -Math.sqrt(2)], [0, -1, -Math.sqrt(2)/2], [0, 0, -Math.sqrt(2)],
+            [0, -1.5, -Math.sqrt(2)], [0, -1.5, 0], [0, -1, -Math.sqrt(2)/2],
+            // Not seen in final golf hole
+            [-Math.sqrt(2), -1.5, 0], [-Math.sqrt(2), 0, 0], [-Math.sqrt(2)/2, -1, 0],
+            [-Math.sqrt(2), -1.5, 0], [-Math.sqrt(2)/2, -1, 0], [0, -1.5, 0]);
+        // Normals not init properly
+        this.arrays.normal = Vector3.cast(
+            [Math.sqrt(2)-1, Math.sqrt(2)/2, 1], [Math.sqrt(2)-1, Math.sqrt(2)/2, 1], [Math.sqrt(2)-1, Math.sqrt(2)/2, 1],
+            [Math.sqrt(2)-1, Math.sqrt(2)/2, 1], [Math.sqrt(2)-1, Math.sqrt(2)/2, 1], [Math.sqrt(2)-1, Math.sqrt(2)/2, 1],
+            [1, Math.sqrt(2)/2, Math.sqrt(2)-1], [1, Math.sqrt(2)/2, Math.sqrt(2)-1], [1, Math.sqrt(2)/2, Math.sqrt(2)-1],
+            [1, Math.sqrt(2)/2, Math.sqrt(2)-1], [1, Math.sqrt(2)/2, Math.sqrt(2)-1], [1, Math.sqrt(2)/2, Math.sqrt(2)-1],
+            [Math.sqrt(2)-1, Math.sqrt(2), 1], [Math.sqrt(2)-1, Math.sqrt(2), 1], [Math.sqrt(2)-1, Math.sqrt(2), 1],
+            [1, Math.sqrt(2), Math.sqrt(2)-1], [1, Math.sqrt(2), Math.sqrt(2)-1], [1, Math.sqrt(2), Math.sqrt(2)-1],
+            [1, 0, 1/(Math.sqrt(2)-1)], [1, 0, 1/(Math.sqrt(2)-1)], [1, 0, 1/(Math.sqrt(2)-1)],
+            [1, 0, 1/(Math.sqrt(2)-1)], [1, 0, 1/(Math.sqrt(2)-1)], [1, 0, 1/(Math.sqrt(2)-1)],
+            [(Math.sqrt(2)-1), 0, 1], [(Math.sqrt(2)-1), 0, 1], [(Math.sqrt(2)-1), 0, 1],
+            [(Math.sqrt(2)-1), 0, 1], [(Math.sqrt(2)-1), 0, 1], [(Math.sqrt(2)-1), 0, 1],
+            [1, 0, 0], [1, 0, 0], [1, 0, 0],
+            [1, 0, 0], [1, 0, 0], [1, 0, 0],
+            [0, 0, 1], [0, 0, 1], [0, 0, 1],
+            [0, 0, 1], [0, 0, 1], [0, 0, 1]);
+        // Cube normals = sets of 4, each correspond to outward of the face?
+        // Arrange the vertices into a square shape in texture space too:
+        this.indices.push(0, 1, 2,
+            3, 4, 5,
+            6, 7, 8,
+            9, 10, 11,
+            12, 13, 14,
+            15, 16, 17,
+            18, 19, 20,
+            21, 22, 23,
+            24, 25, 26,
+            27, 28, 29,
+            30, 31, 32,
+            33, 34, 35,
+            36, 37, 38,
+            39, 40, 41);
+    }
+}
 
 export class Assignment3 extends Scene {
     constructor() {
@@ -42,7 +129,9 @@ export class Assignment3 extends Scene {
             sphere2: new (defs.Subdivision_Sphere.prototype.make_flat_shaded_version())(2),
             sphere3: new defs.Subdivision_Sphere(3),
             sphere4: new defs.Subdivision_Sphere(4),
-            golfBall: new defs.Subdivision_Sphere(4)
+            golfBall: new defs.Subdivision_Sphere(4),
+            twoDGolfHole: new TwoDGolfHole(),
+            threeDGolfHoleCorner: new ThreeDGolfHoleCorner()
  
         };
 
@@ -59,7 +148,8 @@ export class Assignment3 extends Scene {
             // TODO:  Fill in as many additional material objects as needed in this key/value table.
             //        (Requirement 4)
             golfBall: new Material(new defs.Phong_Shader(),
-            {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")})
+            {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
+            golfHole: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#bbbbbb")})
 
  
         }
@@ -107,14 +197,22 @@ export class Assignment3 extends Scene {
             Math.PI / 4, context.width / context.height, .1, 1000);
 
         // TODO: Lighting (Requirement 2)
-        const light_position = vec4(0, 5, 0, 1);
+        const light_position = vec4(5, 5, 0, 1);
         // The parameters of the Light are: position, color, size
-        program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
+        //program_state.lights = [new Light(light_position, color(1, 1, 1, 1), 1000)];
+        //let b_light_pos = vec4(0,5,5,1);
+        //let g_light_pos = vec4(5,5,0,1);
+        //program_state.lights = [new Light(light_position, color(1, 0, 0, 1), 1000), new Light(b_light_pos, color(0,0,1,1), 1000), new Light(g_light_pos, color(0,1,0,1), 1000)];
 
 
         // TODO:  Fill in matrix operations and drawing code to draw the solar system scene (Requirements 3 and 4)
         const t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
         let model_transform = Mat4.identity();
+
+        // Test rotate light
+        let light_transform = vec4(5, 5, 0, 1);
+        light_transform = vec4(2.5+2.5*Math.sin(t), 5, 2.5+2.5*Math.cos(t), 1);
+        program_state.lights = [new Light(light_transform, color(1, 1, 1, 1), 1000)];
 
         //this.shapes.torus.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
 
@@ -131,6 +229,13 @@ export class Assignment3 extends Scene {
             wall_transform = wall_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
         }
 
+        // Golf hole
+        let hole_transform = Mat4.identity();
+        hole_transform = hole_transform.times(Mat4.translation(2.5,3,2.5));
+        //this.shapes.twoDGolfHole.draw(context, program_state, hole_transform, this.materials.golfHole);
+        //this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, this.materials.golfHole);
+        this.display_golf_hole(context, program_state, hole_transform);
+        
         if (this.ball_moving){
             this.move_golf_ball();
             this.friction_update(dt)
@@ -152,11 +257,20 @@ export class Assignment3 extends Scene {
         this.ball_location = Mat4.translation(...velocity).times(this.ball_location);
     }
 
+
+    display_golf_hole(context, program_state, hole_transform) {
+        for (let i = 0; i < 4; i++) {
+            this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, this.materials.golfHole);
+            hole_transform = hole_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
+        }
+    }
+
     friction_update(dt) {
         //only decelerate as much as needed for each frame
         const friction_update = dt * this.friction_coefficient * this.ball_speed;
         this.ball_speed = this.ball_speed - friction_update;
     }
+
 
     //note: the y here refers to z in the xyz plane
     display_golf_ball(context,program_state,golf_model,time,x,y){
