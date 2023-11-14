@@ -68,21 +68,21 @@ export class Assignment3 extends Scene {
 
         this.animated = true;
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
+        this.ball_moving = false;
+        this.ball_location = Mat4.translation(0, 1, 0).times(Mat4.identity());
+        this.ball_velocity = vec3(1.0/Math.sqrt(2.0), 0, 1.0/Math.sqrt(2.0));
         
     }
 
 
     make_control_panel() {
         // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
-        this.key_triggered_button("View solar system", ["Control", "0"], () => this.attached = () => null);
+        this.key_triggered_button("Move/Stop the golf ball", [" "],
+            () => this.ball_moving = !this.ball_moving);
         this.new_line();
-        this.key_triggered_button("Attach to planet 1", ["Control", "1"], () => this.attached = () => this.planet_1);
-        this.key_triggered_button("Attach to planet 2", ["Control", "2"], () => this.attached = () => this.planet_2);
-        this.new_line();
-        this.key_triggered_button("Attach to planet 3", ["Control", "3"], () => this.attached = () => this.planet_3);
-        this.key_triggered_button("Attach to planet 4", ["Control", "4"], () => this.attached = () => this.planet_4);
-        this.new_line();
-        this.key_triggered_button("Attach to moon", ["Control", "m"], () => this.attached = () => this.moon);
+        //for now, allow simple direction reversal
+        this.key_triggered_button("Reverse the direction of the golf ball", ["x"],
+            () => this.ball_velocity = Mat4.rotation(Math.PI, 0, 1, 0).times(this.ball_velocity));
     }
 
 
@@ -135,10 +135,18 @@ export class Assignment3 extends Scene {
         //this.shapes.planet1.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
         //this.shapes.planet2.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
         //this.shapes.planet3.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
-        this.display_golf_ball(context,program_state,model_transform,t,6,6);
+
+        if (this.ball_moving){
+            this.move_golf_ball();
+        }
+        this.shapes.golfBall.draw(context, program_state, this.ball_location, this.materials.golfBall);
  
     }
 
+    move_golf_ball(){
+        //simple translation for now, no friction to slow down the ball
+        this.ball_location = Mat4.translation(...this.ball_velocity).times(this.ball_location);
+    }
     //note: the y here refers to z in the xyz plane
     display_golf_ball(context,program_state,golf_model,time,x,y){
         
