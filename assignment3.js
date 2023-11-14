@@ -4,7 +4,6 @@ import {defs, tiny} from './examples/common.js';
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
 } = tiny;
-
 class Cube extends Shape {
     constructor() {
         super("position", "normal",);
@@ -152,27 +151,36 @@ export class Assignment3 extends Scene {
             {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
             golfHole: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#bbbbbb")})
 
-
-
  
         }
 
-
+        this.animated = true;
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
+        this.ball_moving = false;
+        this.ball_location = Mat4.translation(0, 1, 0).times(Mat4.identity());
+        //ball_direction should always be a unit vector
+        this.ball_direction = vec3(-1.0/Math.sqrt(2.0), 0, -1.0/Math.sqrt(2.0));
+        this.ball_speed = 1;
+        //really, this friction coefficient is friction coeff * g, but it is simpler to do this since g is a constant anyway
+        this.friction_coefficient = 0.6;
+        this.speed_threshhold = 0.01;
+        
     }
 
 
     make_control_panel() {
         // Draw the scene's buttons, setup their actions and keyboard shortcuts, and monitor live measurements.
-        this.key_triggered_button("View solar system", ["Control", "0"], () => this.attached = () => null);
+        this.key_triggered_button("Move the golf ball", [" "],
+            () => {
+            //decided to forbid player from hitting while ball is still moving, this can be changed
+            if(this.ball_moving === false) {
+                this.ball_speed = 1;
+                this.ball_moving = true}
+            });
         this.new_line();
-        this.key_triggered_button("Attach to planet 1", ["Control", "1"], () => this.attached = () => this.planet_1);
-        this.key_triggered_button("Attach to planet 2", ["Control", "2"], () => this.attached = () => this.planet_2);
-        this.new_line();
-        this.key_triggered_button("Attach to planet 3", ["Control", "3"], () => this.attached = () => this.planet_3);
-        this.key_triggered_button("Attach to planet 4", ["Control", "4"], () => this.attached = () => this.planet_4);
-        this.new_line();
-        this.key_triggered_button("Attach to moon", ["Control", "m"], () => this.attached = () => this.moon);
+        //for now, allow simple direction reversal
+        this.key_triggered_button("Reverse the direction of the golf ball", ["x"],
+            () => this.ball_direction = Mat4.rotation(Math.PI, 0, 1, 0).times(this.ball_direction));
     }
 
 
@@ -185,14 +193,8 @@ export class Assignment3 extends Scene {
             program_state.set_camera(this.initial_camera_location);
         }
 
-
         program_state.projection_transform = Mat4.perspective(
             Math.PI / 4, context.width / context.height, .1, 1000);
-
-
-        // TODO: Create Planets (Requirement 1)
-        // this.shapes.[XXX].draw([XXX]) // <--example
-
 
         // TODO: Lighting (Requirement 2)
         const light_position = vec4(5, 5, 0, 1);
@@ -205,7 +207,6 @@ export class Assignment3 extends Scene {
 
         // TODO:  Fill in matrix operations and drawing code to draw the solar system scene (Requirements 3 and 4)
         const t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
-        const yellow = hex_color("#fac91a");
         let model_transform = Mat4.identity();
 
         // Test rotate light
@@ -234,15 +235,28 @@ export class Assignment3 extends Scene {
         //this.shapes.twoDGolfHole.draw(context, program_state, hole_transform, this.materials.golfHole);
         //this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, this.materials.golfHole);
         this.display_golf_hole(context, program_state, hole_transform);
+        
+        if (this.ball_moving){
+            this.move_golf_ball();
+            this.friction_update(dt)
+        }
+        this.shapes.golfBall.draw(context, program_state, this.ball_location, this.materials.golfBall);
 
-        //this.shapes.torus.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
-        //this.shapes.planet1.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
-        //this.shapes.planet2.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
-        //this.shapes.planet3.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
-
-        this.display_golf_ball(context,program_state,model_transform,5,10);
- 
     }
+
+    get_ball_velocity(){
+        return this.ball_direction.times(this.ball_speed);
+    }
+
+    move_golf_ball(){
+        const velocity = this.get_ball_velocity();
+        if(this.ball_speed < this.speed_threshhold){
+            this.ball_moving = false;
+            return;
+        }
+        this.ball_location = Mat4.translation(...velocity).times(this.ball_location);
+    }
+
 
     display_golf_hole(context, program_state, hole_transform) {
         for (let i = 0; i < 4; i++) {
@@ -251,9 +265,27 @@ export class Assignment3 extends Scene {
         }
     }
 
-    display_golf_ball(context,program_state,golf_model,x,y){
-        golf_model = golf_model.times(Mat4.translation(0,1,0)).times(Mat4.translation(x,0,y));
+    friction_update(dt) {
+        //only decelerate as much as needed for each frame
+        const friction_update = dt * this.friction_coefficient * this.ball_speed;
+        this.ball_speed = this.ball_speed - friction_update;
+    }
 
+
+    //note: the y here refers to z in the xyz plane
+    display_golf_ball(context,program_state,golf_model,time,x,y){
+        
+        golf_model = golf_model.times(Mat4.translation(0,1,0));
+        let saved_model = golf_model;
+        if (this.animated){
+            if (x/2 + Math.sin(time)*x/2 >= x-0.001){
+                this.animated = false;
+            }
+            golf_model = golf_model.times(Mat4.translation(x/2 + Math.sin(time)*x/2,0,y/2 + Math.sin(time)*y/2));
+        }
+        else{
+            golf_model = saved_model.times(Mat4.translation(x,0,y));
+        }
         this.shapes.golfBall.draw(context, program_state, golf_model, this.materials.golfBall);
     }
 }
