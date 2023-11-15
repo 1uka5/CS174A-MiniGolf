@@ -164,6 +164,11 @@ export class Assignment3 extends Scene {
         //really, this friction coefficient is friction coeff * g, but it is simpler to do this since g is a constant anyway
         this.friction_coefficient = 0.6;
         this.speed_threshhold = 0.01;
+<<<<<<< HEAD
+        this.x_bound = 10;
+        this.y_bound = 10;
+=======
+>>>>>>> 6ca566c6f53a2e23895e375bf518b87576d401e4
         
     }
 
@@ -237,10 +242,24 @@ export class Assignment3 extends Scene {
         this.display_golf_hole(context, program_state, hole_transform);
         
         if (this.ball_moving){
+            //adds very basic boundaries
+            if (this.ball_location[0][3] >= this.x_bound || 
+                this.ball_location[2][3] >= this.y_bound ||
+                this.ball_location[0][3] <= this.x_bound * -1|| 
+                this.ball_location[2][3] <= this.y_bound * -1){
+                this.ball_moving = false;
+            }
+
             this.move_golf_ball();
             this.friction_update(dt)
         }
         this.shapes.golfBall.draw(context, program_state, this.ball_location, this.materials.golfBall);
+        console.log(this.ball_location[0]);
+        console.log(this.ball_location[1]);
+        console.log(this.ball_location[2]);
+        console.log(this.ball_location[3]);
+        console.log("yes");
+
 
     }
 
@@ -496,6 +515,5 @@ class Ring_Shader extends Shader {
         }`;
     }
 }
-
 
 
