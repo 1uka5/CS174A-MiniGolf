@@ -164,8 +164,11 @@ export class Assignment3 extends Scene {
         //really, this friction coefficient is friction coeff * g, but it is simpler to do this since g is a constant anyway
         this.friction_coefficient = 0.6;
         this.speed_threshhold = 0.01;
+<<<<<<< HEAD
         this.x_bound = 10;
         this.y_bound = 10;
+=======
+>>>>>>> 6ca566c6f53a2e23895e375bf518b87576d401e4
         
     }
 
@@ -246,6 +249,7 @@ export class Assignment3 extends Scene {
                 this.ball_location[2][3] <= this.y_bound * -1){
                 this.ball_moving = false;
             }
+
             this.move_golf_ball();
             this.friction_update(dt)
         }
@@ -255,6 +259,7 @@ export class Assignment3 extends Scene {
         console.log(this.ball_location[2]);
         console.log(this.ball_location[3]);
         console.log("yes");
+
 
     }
 
