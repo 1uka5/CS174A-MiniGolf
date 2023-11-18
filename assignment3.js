@@ -161,6 +161,10 @@ export class Assignment3 extends Scene {
         this.ball_location = Mat4.translation(0, 1, 0).times(Mat4.identity());
         //ball_direction should always be a unit vector
         this.ball_direction = vec3(-1.0/Math.sqrt(2.0), 0, -1.0/Math.sqrt(2.0));
+        this.ball_direction = vec3(1, 0, 0);
+
+        this.angle_ball_location = this.ball_location.times(Mat4.translation(1.3,0,0).times(Mat4.scale(0.3,0.3,0.3)));
+
         this.ball_speed = 0.0;
         //really, this friction coefficient is friction coeff * g, but it is simpler to do this since g is a constant anyway
         this.friction_coefficient = 0.6;
@@ -187,9 +191,14 @@ export class Assignment3 extends Scene {
         this.key_triggered_button("Reverse the direction of the golf ball", ["x"],
             () => this.ball_direction = Mat4.rotation(Math.PI, 0, 1, 0).times(this.ball_direction));
         this.new_line();
-        this.key_triggered_button("Angle ball spin", ["k"],
+        this.key_triggered_button("Toggle Angle ball spin", ["k"],
             () => {
                 this.angle_ball_rotation = !this.angle_ball_rotation;
+                console.log(this.angle_ball_location[0][3] - this.ball_location[0][3]);
+                console.log(this.angle_ball_location[2][3] - this.ball_location[2][3]);
+                if (!this.angle_ball_rotation){
+                    this.ball_direction = vec3(this.angle_ball_location[0][3] - this.ball_location[0][3], 0, this.angle_ball_location[2][3] - this.ball_location[2][3]);
+                }
             })
     }
 
@@ -271,14 +280,16 @@ export class Assignment3 extends Scene {
         this.friction_update(dt)
         this.shapes.golfBall.draw(context, program_state, this.ball_location, this.materials.golfBall);
 
-        var angle_ball_location = this.ball_location;
+        // 
         if (this.angle_ball_rotation){
-            angle_ball_location = angle_ball_location.times(Mat4.rotation(3* t, 0, 1, 0)).times(Mat4.translation(1.3,0,0).times(Mat4.scale(0.3,0.3,0.3)));
+            this.angle_ball_location = this.ball_location;
+            this.angle_ball_location = this.angle_ball_location.times(Mat4.rotation(3* t, 0, 1, 0)).times(Mat4.translation(1.3,0,0).times(Mat4.scale(0.3,0.3,0.3)));
         }
-        else{
-            angle_ball_location = angle_ball_location.times(Mat4.translation(1.3,0,0).times(Mat4.scale(0.3,0.3,0.3)));
+
+        if (!this.ball_moving){
+            this.shapes.angleBall.draw(context,program_state,this.angle_ball_location,this.materials.angleBall);
         }
-        this.shapes.angleBall.draw(context,program_state,angle_ball_location,this.materials.angleBall);
+
 
         //console.log(this.ball_location[0]);
         //console.log(this.ball_location[1]);
