@@ -157,13 +157,14 @@ export class Assignment3 extends Scene {
         this.animated = true;
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
         this.ball_moving = false;
-        this.angle_ball_rotating = true;
+        this.angle_ball_rotation = true;
         this.ball_location = Mat4.translation(0, 1, 0).times(Mat4.identity());
         //ball_direction should always be a unit vector
-        this.ball_direction = vec3(-1.0/Math.sqrt(2.0), 0, -1.0/Math.sqrt(2.0));
+        //this.ball_direction = vec3(-1.0/Math.sqrt(2.0), 0, -1.0/Math.sqrt(2.0));
         this.ball_direction = vec3(1, 0, 0);
 
-        this.angle_ball_location = this.ball_location.times(Mat4.translation(1.3,0,0).times(Mat4.scale(0.3,0.3,0.3)));
+        this.hit_power = 2;
+        this.angle_ball_location = this.angle_ball_location = Mat4.translation(...(this.ball_direction.times(this.hit_power))).times(this.ball_location.times(Mat4.scale(0.3,0.3,0.3)));
 
         this.ball_speed = 0.0;
         //really, this friction coefficient is friction coeff * g, but it is simpler to do this since g is a constant anyway
@@ -183,7 +184,10 @@ export class Assignment3 extends Scene {
             //decided to forbid player from hitting while ball is still moving, this can be changed
             if(this.ball_moving === false) {
 
-                this.ball_speed = 0.3;
+                if(this.angle_ball_rotation) {
+                    this.angle_handler();
+                }
+                this.ball_speed = this.hit_power/2.0;
                 this.ball_moving = true}
             });
         this.new_line();
@@ -193,15 +197,36 @@ export class Assignment3 extends Scene {
         this.new_line();
         this.key_triggered_button("Toggle Angle ball spin", ["k"],
             () => {
-                this.angle_ball_rotation = !this.angle_ball_rotation;
-                console.log(this.angle_ball_location[0][3] - this.ball_location[0][3]);
-                console.log(this.angle_ball_location[2][3] - this.ball_location[2][3]);
-                if (!this.angle_ball_rotation){
-                    this.ball_direction = vec3(this.angle_ball_location[0][3] - this.ball_location[0][3], 0, this.angle_ball_location[2][3] - this.ball_location[2][3]);
-                }
+                this.angle_handler();
             })
+        //make sure hit power can only be changed when the ball is NOT moving
+        //probably code it very similarly to angle ball rotation, make sure to recalc new angle ball location BEFORE doing rotation
     }
 
+    init_angle_ball_location(){
+        this.angle_ball_location = Mat4.translation(...(this.ball_direction.times(this.hit_power))).times(this.ball_location.times(Mat4.scale(0.3,0.3,0.3)));
+    }
+
+    angle_handler(){
+        if (this.ball_moving){
+            return;
+        }
+        this.angle_ball_rotation = !this.angle_ball_rotation;
+        console.log(this.angle_ball_location[0][3] - this.ball_location[0][3]);
+        console.log(this.angle_ball_location[2][3] - this.ball_location[2][3]);
+        if (!this.angle_ball_rotation){
+            this.ball_direction = vec3(this.angle_ball_location[0][3] - this.ball_location[0][3], 0, this.angle_ball_location[2][3] - this.ball_location[2][3]).times(1.0/this.hit_power);
+        }else{
+            this.init_angle_ball_location();
+        }
+    }
+
+    stopping_handler(){
+        this.ball_moving = false;
+        //just to make sure nothing breaks
+        this.angle_ball_rotation = false;
+        this.angle_handler();
+    }
 
     display(context, program_state) {
         // display():  Called once per frame of animation.
@@ -276,14 +301,20 @@ export class Assignment3 extends Scene {
             //this.ball_location = Mat4.translation(0, 1, 0).times(Mat4.identity());
         }
 
-        this.move_golf_ball();
-        this.friction_update(dt)
+        if (this.ball_moving) {
+            this.move_golf_ball();
+            this.friction_update(dt);
+        }
         this.shapes.golfBall.draw(context, program_state, this.ball_location, this.materials.golfBall);
 
         // 
         if (this.angle_ball_rotation){
-            this.angle_ball_location = this.ball_location;
-            this.angle_ball_location = this.angle_ball_location.times(Mat4.rotation(3* t, 0, 1, 0)).times(Mat4.translation(1.3,0,0).times(Mat4.scale(0.3,0.3,0.3)));
+            const x = this.ball_location[0][3];
+            const y = this.ball_location[1][3];
+            const z = this.ball_location[2][3];
+            this.angle_ball_location = Mat4.translation(-1*x, -1*y, -1*z).times(this.angle_ball_location);
+            this.angle_ball_location = Mat4.rotation(2*dt, 0, 1, 0).times(this.angle_ball_location);
+            this.angle_ball_location = Mat4.translation(x, y, z).times(this.angle_ball_location);
         }
 
         if (!this.ball_moving){
@@ -308,7 +339,7 @@ export class Assignment3 extends Scene {
     move_golf_ball(){
         const velocity = this.get_ball_velocity();
         if(this.ball_speed < this.speed_threshhold){
-            this.ball_moving = false;
+            this.stopping_handler();
             return;
         }
         this.ball_location = Mat4.translation(...velocity).times(this.ball_location);
