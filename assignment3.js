@@ -131,7 +131,8 @@ export class Assignment3 extends Scene {
             sphere4: new defs.Subdivision_Sphere(4),
             golfBall: new defs.Subdivision_Sphere(4),
             twoDGolfHole: new TwoDGolfHole(),
-            threeDGolfHoleCorner: new ThreeDGolfHoleCorner()
+            threeDGolfHoleCorner: new ThreeDGolfHoleCorner(),
+            angleBall: new defs.Subdivision_Sphere(4)
  
         };
 
@@ -147,23 +148,28 @@ export class Assignment3 extends Scene {
             wall: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.2, specularity: 0.0, color: hex_color("#f0f0f0")}),
             // TODO:  Fill in as many additional material objects as needed in this key/value table.
             //        (Requirement 4)
-            golfBall: new Material(new defs.Phong_Shader(),
-            {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
-            golfHole: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#bbbbbb")})
-
+            golfBall: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
+            angleBall: new Material(new defs.Phong_Shader(), {color: hex_color("#000000")}),
+            golfHole: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#bbbbbb")}),
  
         }
 
         this.animated = true;
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
         this.ball_moving = false;
+        this.angle_ball_rotating = true;
         this.ball_location = Mat4.translation(0, 1, 0).times(Mat4.identity());
         //ball_direction should always be a unit vector
         this.ball_direction = vec3(-1.0/Math.sqrt(2.0), 0, -1.0/Math.sqrt(2.0));
+        this.ball_direction = vec3(1, 0, 0);
+
+        this.angle_ball_location = this.ball_location.times(Mat4.translation(1.3,0,0).times(Mat4.scale(0.3,0.3,0.3)));
+
         this.ball_speed = 0.0;
         //really, this friction coefficient is friction coeff * g, but it is simpler to do this since g is a constant anyway
         this.friction_coefficient = 0.6;
         this.speed_threshhold = 0.01;
+
         this.x_bound = 13.95; // 15 - 0.05 for wall width - 1 for radius of golf ball
         this.y_bound = 13.95;
         
@@ -176,6 +182,7 @@ export class Assignment3 extends Scene {
             () => {
             //decided to forbid player from hitting while ball is still moving, this can be changed
             if(this.ball_moving === false) {
+
                 this.ball_speed = 0.3;
                 this.ball_moving = true}
             });
@@ -183,6 +190,16 @@ export class Assignment3 extends Scene {
         //for now, allow simple direction reversal
         this.key_triggered_button("Reverse the direction of the golf ball", ["x"],
             () => this.ball_direction = Mat4.rotation(Math.PI, 0, 1, 0).times(this.ball_direction));
+        this.new_line();
+        this.key_triggered_button("Toggle Angle ball spin", ["k"],
+            () => {
+                this.angle_ball_rotation = !this.angle_ball_rotation;
+                console.log(this.angle_ball_location[0][3] - this.ball_location[0][3]);
+                console.log(this.angle_ball_location[2][3] - this.ball_location[2][3]);
+                if (!this.angle_ball_rotation){
+                    this.ball_direction = vec3(this.angle_ball_location[0][3] - this.ball_location[0][3], 0, this.angle_ball_location[2][3] - this.ball_location[2][3]);
+                }
+            })
     }
 
 
@@ -262,6 +279,18 @@ export class Assignment3 extends Scene {
         this.move_golf_ball();
         this.friction_update(dt)
         this.shapes.golfBall.draw(context, program_state, this.ball_location, this.materials.golfBall);
+
+        // 
+        if (this.angle_ball_rotation){
+            this.angle_ball_location = this.ball_location;
+            this.angle_ball_location = this.angle_ball_location.times(Mat4.rotation(3* t, 0, 1, 0)).times(Mat4.translation(1.3,0,0).times(Mat4.scale(0.3,0.3,0.3)));
+        }
+
+        if (!this.ball_moving){
+            this.shapes.angleBall.draw(context,program_state,this.angle_ball_location,this.materials.angleBall);
+        }
+
+
         //console.log(this.ball_location[0]);
         //console.log(this.ball_location[1]);
         //console.log(this.ball_location[2]);
@@ -269,6 +298,7 @@ export class Assignment3 extends Scene {
         //console.log("yes");
 
 
+        
     }
 
     get_ball_velocity(){
