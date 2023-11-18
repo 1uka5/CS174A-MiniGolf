@@ -161,14 +161,13 @@ export class Assignment3 extends Scene {
         this.ball_location = Mat4.translation(0, 1, 0).times(Mat4.identity());
         //ball_direction should always be a unit vector
         this.ball_direction = vec3(-1.0/Math.sqrt(2.0), 0, -1.0/Math.sqrt(2.0));
-        this.ball_speed = 1;
+        this.ball_speed = 0.0;
         //really, this friction coefficient is friction coeff * g, but it is simpler to do this since g is a constant anyway
         this.friction_coefficient = 0.6;
         this.speed_threshhold = 0.01;
 
-        this.x_bound = 13;
-        this.y_bound = 13;
-
+        this.x_bound = 13.95; // 15 - 0.05 for wall width - 1 for radius of golf ball
+        this.y_bound = 13.95;
         
     }
 
@@ -179,12 +178,10 @@ export class Assignment3 extends Scene {
             () => {
             //decided to forbid player from hitting while ball is still moving, this can be changed
             if(this.ball_moving === false) {
-                this.ball_speed = 1;
-            }
-            this.ball_moving = ! this.ball_moving;
-            }
 
-            );
+                this.ball_speed = 0.3;
+                this.ball_moving = true}
+            });
         this.new_line();
         //for now, allow simple direction reversal
         this.key_triggered_button("Reverse the direction of the golf ball", ["x"],
@@ -224,7 +221,7 @@ export class Assignment3 extends Scene {
 
         // Test rotate light
         let light_transform = vec4(5, 5, 0, 1);
-        light_transform = vec4(2.5+2.5*Math.sin(t), 5, 2.5+2.5*Math.cos(t), 1);
+        light_transform = vec4(2.5+2.5*Math.sin(t), 30, 2.5+2.5*Math.cos(t), 1);
         program_state.lights = [new Light(light_transform, color(1, 1, 1, 1), 1000)];
 
         //this.shapes.torus.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
@@ -244,24 +241,36 @@ export class Assignment3 extends Scene {
 
         // Golf hole
         let hole_transform = Mat4.identity();
-        hole_transform = hole_transform.times(Mat4.translation(2.5,3,2.5));
+        hole_transform = hole_transform.times(Mat4.translation(0,1.5,-5));
         //this.shapes.twoDGolfHole.draw(context, program_state, hole_transform, this.materials.golfHole);
         //this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, this.materials.golfHole);
         this.display_golf_hole(context, program_state, hole_transform);
-        if (this.ball_moving){
-            //adds very basic boundaries
-            if (this.ball_location[0][3] >= this.x_bound || 
-                this.ball_location[2][3] >= this.y_bound ||
-                this.ball_location[0][3] <= this.x_bound * -1|| 
-                this.ball_location[2][3] <= this.y_bound * -1){
-                this.ball_moving = false;
-            }
-            else{
-                this.move_golf_ball();
-                this.friction_update(dt)
-            }
+
+        //adds very basic boundaries
+        if (this.ball_location[0][3] >= this.x_bound){
+            //this.ball_direction = vec3(-1*this.ball_direction[0], -1*this.ball_direction[1], -1*this.ball_direction[2]);
+            this.reflect_ball_dir(vec3(-5,0,0)); // Automatic normalize in function
         }
+        if (this.ball_location[2][3] >= this.y_bound){
+            //this.ball_direction = vec3(-1*this.ball_direction[0], -1*this.ball_direction[1], -1*this.ball_direction[2]);
+            this.reflect_ball_dir(vec3(0,0,-1));
+            //this.ball_location = Mat4.translation(0, 1, 0).times(Mat4.identity());
+        }
+        if (this.ball_location[0][3] <= this.x_bound * -1){
+            //this.ball_direction = vec3(-1*this.ball_direction[0], -1*this.ball_direction[1], -1*this.ball_direction[2]);
+            this.reflect_ball_dir(vec3(5,0,0));
+            //this.ball_location = Mat4.translation(0, 1, 0).times(Mat4.identity());
+        }
+        if (this.ball_location[2][3] <= this.y_bound * -1){
+            //this.ball_direction = vec3(-1*this.ball_direction[0], -1*this.ball_direction[1], -1*this.ball_direction[2]);
+            this.reflect_ball_dir(vec3(0,0,1));
+            //this.ball_location = Mat4.translation(0, 1, 0).times(Mat4.identity());
+        }
+
+        this.move_golf_ball();
+        this.friction_update(dt)
         this.shapes.golfBall.draw(context, program_state, this.ball_location, this.materials.golfBall);
+
         var angle_ball_location = this.ball_location;
         if (this.angle_ball_rotation){
             angle_ball_location = angle_ball_location.times(Mat4.rotation(3* t, 0, 1, 0)).times(Mat4.translation(1.3,0,0).times(Mat4.scale(0.3,0.3,0.3)));
@@ -270,6 +279,13 @@ export class Assignment3 extends Scene {
             angle_ball_location = angle_ball_location.times(Mat4.translation(1.3,0,0).times(Mat4.scale(0.3,0.3,0.3)));
         }
         this.shapes.angleBall.draw(context,program_state,angle_ball_location,this.materials.angleBall);
+
+        //console.log(this.ball_location[0]);
+        //console.log(this.ball_location[1]);
+        //console.log(this.ball_location[2]);
+        //console.log(this.ball_location[3]);
+        //console.log("yes");
+
 
         
     }
@@ -300,6 +316,28 @@ export class Assignment3 extends Scene {
         const friction_update = dt * this.friction_coefficient * this.ball_speed;
         this.ball_speed = this.ball_speed - friction_update;
     }
+
+    reflect_ball_dir(norm_of_collider) {
+        // norm_of_collider should be vec3
+        norm_of_collider = norm_of_collider.normalized();
+        // -1 * ball_direction + 2 * ball_direction.project_onto(normal)
+        // (2 * this.ball_direction * norm_of_collider) norm_of_collider - this.ball_direction
+        console.log(norm_of_collider.dot(this.ball_direction));
+        //this.ball_direction = this.ball_direction.times(-1);
+        //this.ball_direction = (norm_of_collider.times(2*norm_of_collider.dot(this.ball_direction.times(-1))));
+        // Issue found -> class diagram has all vectors pointing away from surface
+        this.ball_direction = (norm_of_collider.times(2*norm_of_collider.dot(this.ball_direction.times(-1)))).minus(this.ball_direction.times(-1));
+    }
+
+
+
+
+
+
+
+
+
+
 
 
     //note: the y here refers to z in the xyz plane
