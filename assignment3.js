@@ -187,7 +187,7 @@ export class Assignment3 extends Scene {
         this.y_bound = 13.95;
         this.z_bound = 1.05; // 0.05 ground height + 1 radius of golf ball
         // some intersection with ground = golf is "in grass" rather than floating above
-        
+
     }
 
 
@@ -328,16 +328,22 @@ export class Assignment3 extends Scene {
         this.display_golf_hole(context, program_state, hole_transform);
 
         //adds very basic boundaries
+        /*
         if (this.ball_location[0][3] >= this.x_bound){
-            //this.reflect_ball_dir(vec3(-1,0,0)); // Automatic normalize in function
+            this.ball_location[0][3] = this.x_bound - 0.01;
+            this.reflect_ball_dir(vec3(-1,0,0)); // Automatic normalize in function
         }
+         */
         if (this.ball_location[2][3] >= this.y_bound){
+            this.ball_location[2][3] = this.y_bound - 0.01;
             this.reflect_ball_dir(vec3(0,0,-1));
         }
         if (this.ball_location[0][3] <= this.x_bound * -1){
+            this.ball_location[0][3] = -1 * this.x_bound + 0.01;
             this.reflect_ball_dir(vec3(1,0,0));
         }
         if (this.ball_location[2][3] <= this.y_bound * -1){
+            this.ball_location[2][3] = -1 * this.y_bound + 0.01;
             this.reflect_ball_dir(vec3(0,0,1));
         }
 
@@ -403,7 +409,7 @@ export class Assignment3 extends Scene {
         //console.log("yes");
 
 
-        
+
     }
 
     get_ball_velocity(){
