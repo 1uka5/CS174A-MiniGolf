@@ -157,7 +157,7 @@ export class Assignment3 extends Scene {
         this.animated = true;
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
         this.ball_moving = false;
-        this.hit_power_change = true;
+        this.hit_power_change = false;
         this.hit_direction_change = true;
 
 
@@ -196,14 +196,7 @@ export class Assignment3 extends Scene {
         this.key_triggered_button("Move the golf ball", [" "],
             () => {
             //decided to forbid player from hitting while ball is still moving, this can be changed
-            if(this.ball_moving === false) {
-
-                if(this.hit_power_change){
-                    this.hit_power_handler();
-                }
-                if(this.hit_direction_change){
-                    this.hit_direction_handler();
-                }
+            if(!(this.ball_moving || this.hit_direction_change || this.hit_power_change)) {
                 /*if(this.angle_ball_rotation) {
                     this.angle_handler();
                 }*/
@@ -214,14 +207,8 @@ export class Assignment3 extends Scene {
         this.key_triggered_button("Reverse the direction of the golf ball", ["x"],
             () => this.ball_direction = Mat4.rotation(Math.PI, 0, 1, 0).times(this.ball_direction));
         this.new_line();
-        this.key_triggered_button("Toggle hit direction", ["k"],
-            () => {
-                this.hit_direction_handler();
-            })
-        this.key_triggered_button("Toggle hit power", ["l"],
-            () => {
-                this.hit_power_handler();
-            })
+        this.key_triggered_button("Select hit direction/power", ["k"],
+            () => this.hit_direction_change ? this.hit_direction_handler() : this.hit_power_handler());
         //make sure hit power can only be changed when the ball is NOT moving
         //probably code it very similarly to angle ball rotation, make sure to recalc new angle ball location BEFORE doing rotation
     }
@@ -234,24 +221,26 @@ export class Assignment3 extends Scene {
         if (this.ball_moving){
             return;
         }
-        this.hit_direction_change = !this.hit_direction_change;
-        if (!this.hit_direction_change){
+        if (this.hit_direction_change) {
             this.ball_direction = this.hit_direction;
-        }else{
+            this.hit_direction_change = false;
+            this.hit_power_change = true;
+        }
+        else {
             this.hit_direction = vec3(this.ball_direction[0], 0, this.ball_direction[2]);
             this.set_angle_ball_location();
         }
     }
 
     hit_power_handler() {
-        if (this.ball_moving){
+        if (this.ball_moving) {
             return;
         }
-        this.hit_power_change = !this.hit_power_change;
-        if (!this.hit_power_change){
-            this.ball_speed = this.hit_power/this.power_speed_ratio;
-        }else{
-            this.hit_power = this.ball_speed*this.power_speed_ratio;
+        if (this.hit_power_change) {
+            this.ball_speed = this.hit_power / this.power_speed_ratio;
+            this.hit_power_change = false;
+        } else {
+            this.hit_power = this.ball_speed * this.power_speed_ratio;
             this.set_angle_ball_location();
         }
     }
@@ -265,6 +254,8 @@ export class Assignment3 extends Scene {
         this.hit_direction_handler();
         this.hit_power_change = false;
         this.hit_power_handler();
+        this.hit_direction_change = true;
+        this.hit_power = this.power_speed_ratio; // trying to make small ball further away from golf ball after golf ball moves but not working
     }
 
     display(context, program_state) {
