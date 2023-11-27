@@ -110,6 +110,19 @@ class ThreeDGolfHoleCorner extends Shape {
     }
 }
 
+class GolfHoleGrassEdge extends Shape {
+    constructor() {
+        super("position", "normal",);
+        // Loop 3 times (for each axis), and inside loop twice (for opposing cube sides):
+        this.arrays.position = Vector3.cast(
+            [0, 0, -Math.sqrt(2)], [-1, 0, -1], [-Math.sqrt(2), 0, -Math.sqrt(2)], [-Math.sqrt(2), 0, 0]);
+        this.arrays.normal = Vector3.cast(
+            [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]);
+        // Arrange the vertices into a square shape in texture space too:
+        this.indices.push(0, 1, 2, 2, 1, 3);
+    }
+}
+
 export class Assignment3 extends Scene {
     constructor() {
         // constructor(): Scenes begin by populating initial values like the Shapes and Materials they'll need.
@@ -132,6 +145,7 @@ export class Assignment3 extends Scene {
             golfBall: new defs.Subdivision_Sphere(4),
             twoDGolfHole: new TwoDGolfHole(),
             threeDGolfHoleCorner: new ThreeDGolfHoleCorner(),
+            golfHoleGrassEdge: new GolfHoleGrassEdge(),
             angleBall: new defs.Subdivision_Sphere(4)
  
         };
@@ -161,7 +175,7 @@ export class Assignment3 extends Scene {
         this.hit_direction_change = true;
 
 
-        this.ball_location = Mat4.translation(0, 1, 0).times(Mat4.identity());
+        this.ball_location = Mat4.translation(85, 1, 0).times(Mat4.identity());
         this.ball_direction = vec3(1, 0, 0);
         this.ball_speed = 1.0;
 
@@ -178,6 +192,7 @@ export class Assignment3 extends Scene {
         this.ball_speed = 1.0;
         //really, this friction coefficient is friction coeff * g, but it is simpler to do this since g is a constant anyway
         this.friction_coefficient = 0.6;
+        this.drag_coefficient = 0.5;
         this.speed_threshhold = 0.02;
 
         this.grav_vec = vec3(0,-0.01,0);
@@ -187,6 +202,9 @@ export class Assignment3 extends Scene {
         this.y_bound = 13.95;
         this.z_bound = 1.05; // 0.05 ground height + 1 radius of golf ball
         // some intersection with ground = golf is "in grass" rather than floating above
+
+        this.cam_dir = 0.0;
+        this.cam_angle = 0.0;
 
     }
 
@@ -211,6 +229,15 @@ export class Assignment3 extends Scene {
             () => this.hit_direction_change ? this.hit_direction_handler() : this.hit_power_handler());
         //make sure hit power can only be changed when the ball is NOT moving
         //probably code it very similarly to angle ball rotation, make sure to recalc new angle ball location BEFORE doing rotation
+        this.new_line();
+        this.key_triggered_button("Spin camera left", ["i"],
+            () => this.cam_dir = -1.0);
+        this.new_line();
+        this.key_triggered_button("Hold camera", ["o"],
+            () => this.cam_dir = 0.0);
+        this.new_line();
+        this.key_triggered_button("Spin camera right", ["p"],
+            () => this.cam_dir = 1.0);
     }
 
     set_angle_ball_location(){
@@ -283,37 +310,104 @@ export class Assignment3 extends Scene {
         const t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
         let model_transform = Mat4.identity();
 
+        // Camera work
+        this.cam_angle = (this.cam_angle + this.cam_dir * dt) % (2.0*Math.PI);
+        if (this.ball_location != null) {
+            let desired = this.ball_location;
+            desired = desired.times(Mat4.rotation(this.cam_angle, 0,1,0));
+            desired = desired.times(Mat4.translation(0, 20, 80));
+            desired = Mat4.inverse(desired);
+            desired = desired.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1)); // blend factor second param
+            // Small issue as suggested in spec: lag behind planet = not centered on planet anymore
+            program_state.set_camera(desired);
+        }
+
         // Test rotate light
         let light_transform = vec4(5, 5, 0, 1);
-        light_transform = vec4(2.5+2.5*Math.sin(t), 30, 2.5+2.5*Math.cos(t), 1);
+        //light_transform = vec4(2.5+2.5*Math.sin(t), 30, 2.5+2.5*Math.cos(t), 1);
+        light_transform = vec4(this.ball_location[0][3], this.ball_location[1][3] + 5, this.ball_location[2][3], 1);
         program_state.lights = [new Light(light_transform, color(1, 1, 1, 1), 1000)];
 
         //this.shapes.torus.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
 
-        // Ground
-        let ground_transform = model_transform.times(Mat4.scale(15,0.1,15));
+        // Ground 1
+        let ground_transform = model_transform.times(Mat4.scale(15,0.01,15));
         this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.flat_terrain);
         let wall_transform = Mat4.identity();
         for (let i = 0; i < 4; i++) {
             wall_transform = wall_transform.times(Mat4.translation(15,0,0));
             wall_transform = wall_transform.times(Mat4.scale(0.1,1,15.1));
-            this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+            if (i !== 0) {
+                this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+            }
             wall_transform = wall_transform.times(Mat4.scale(10,1,1/15.1));
             wall_transform = wall_transform.times(Mat4.translation(-15,0,0));
             wall_transform = wall_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
         }
 
-        //let slope_transform = model_transform.times(Mat4.translation(20,0.05+2.5*2.0/Math.sqrt(3.0),0));
+        // Slope 1
+        let my_m = Mat4.identity();
+        my_m[1][0] = 17.5*2.0/Math.sqrt(3.0)*100.0; // Sheer to match slope
+        let slope_transform = model_transform.times(Mat4.translation(50,17.5*2.0/Math.sqrt(3.0),0));
         //slope_transform = slope_transform.times(Mat4.rotation(30*Math.PI/180,0,0,1));
-        //slope_transform = slope_transform.times(Mat4.scale(5.0*2.0/Math.sqrt(3.0),0.001,15));
-        let slope_transform = model_transform.times(Mat4.translation(50,0.05+17.5*2.0/Math.sqrt(3.0),0));
-        slope_transform = slope_transform.times(Mat4.rotation(30*Math.PI/180,0,0,1));
-        slope_transform = slope_transform.times(Mat4.scale(35.0*2.0/Math.sqrt(3.0),0.001,15));
+        //slope_transform = slope_transform.times(Mat4.scale(35.0*2.0/Math.sqrt(3.0),0.1,15));
+        slope_transform = slope_transform.times(Mat4.scale(35,0.01,15));
+        slope_transform = slope_transform.times(my_m);
         this.shapes.flat_terrain.draw(context, program_state, slope_transform, this.materials.flat_terrain)
+        // Slope walls
+        my_m = Mat4.identity();
+        my_m[1][2] = 17.5*2.0/Math.sqrt(3.0); // Sheer to match slope
+        wall_transform = Mat4.identity().times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
+        //wall_transform = wall_transform.times(Mat4.translation(15,0, 15.1+35*Math.sqrt(3.0)/2.0));
+        wall_transform = wall_transform.times(Mat4.translation(15,17.5*2.0/Math.sqrt(3.0), 15.0+35));
+        wall_transform = wall_transform.times(Mat4.scale(0.1,1,35));
+        wall_transform = wall_transform.times(my_m);
+        this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+        wall_transform = wall_transform.times(Mat4.inverse(my_m));
+        wall_transform = wall_transform.times(Mat4.scale(10,1,1/15.0));
+        wall_transform = wall_transform.times(Mat4.translation(-30,0,0));
+        wall_transform = wall_transform.times(Mat4.scale(0.1,1,15.0));
+        wall_transform = wall_transform.times(my_m);
+        this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+        wall_transform = wall_transform.times(Mat4.inverse(my_m));
+
+        // Ground 2
+        //ground_transform = Mat4.identity().times(Mat4.translation(100.0, 35.0*2.0/Math.sqrt(3.0), 0)).times(Mat4.scale(15,0.01,15));
+        ground_transform = Mat4.identity().times(Mat4.translation(100.0, 35.0*2.0/Math.sqrt(3.0), 0));
+        for (let i = 0; i < 4; i++) {
+            ground_transform = ground_transform.times(Mat4.translation(8.5,0,0));
+            ground_transform = ground_transform.times(Mat4.scale(6.5,0.01,2));
+            this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.flat_terrain);
+            ground_transform = ground_transform.times(Mat4.scale(1/6.5,100,1/2));
+            ground_transform = ground_transform.times(Mat4.translation(-8.5,0,0));
+            ground_transform = ground_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
+        }
+        for (let i = 0; i < 4; i++) {
+            ground_transform = ground_transform.times(Mat4.translation(8.5,0,8.5));
+            ground_transform = ground_transform.times(Mat4.scale(6.5,0.01,6.5));
+            this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.flat_terrain);
+            ground_transform = ground_transform.times(Mat4.scale(1/6.5,100,1/6.5));
+            ground_transform = ground_transform.times(Mat4.translation(-8.5,0,-8.5));
+            ground_transform = ground_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
+        }
+        //this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.flat_terrain);
+
+        wall_transform = Mat4.identity().times(Mat4.translation(100.0, 35.0*2.0/Math.sqrt(3.0), 0));
+        for (let i = 0; i < 4; i++) {
+            wall_transform = wall_transform.times(Mat4.translation(15,0,0));
+            wall_transform = wall_transform.times(Mat4.scale(0.1,1,15.0));
+            if (i !== 2) {
+                this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+            }
+            wall_transform = wall_transform.times(Mat4.scale(10,1,1/15.0));
+            wall_transform = wall_transform.times(Mat4.translation(-15,0,0));
+            wall_transform = wall_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
+        }
 
         // Golf hole
         let hole_transform = Mat4.identity();
-        hole_transform = hole_transform.times(Mat4.translation(0,1.5,-5));
+        hole_transform = hole_transform.times(Mat4.translation(100,35.0*2.0/Math.sqrt(3.0),0));
+        hole_transform = hole_transform.times(Mat4.scale(Math.sqrt(2),2,Math.sqrt(2)));
         //this.shapes.twoDGolfHole.draw(context, program_state, hole_transform, this.materials.golfHole);
         //this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, this.materials.golfHole);
         this.display_golf_hole(context, program_state, hole_transform);
@@ -337,16 +431,22 @@ export class Assignment3 extends Scene {
             this.ball_location[2][3] = -1 * this.y_bound + 0.01;
             this.reflect_ball_dir(vec3(0,0,1));
         }
+        if (this.ball_location[0][3] >= 115.0){
+            this.ball_location[0][3] = 115.0 - 0.01;
+            this.reflect_ball_dir(vec3(-1,0,0)); // Automatic normalize in function
+        }
 
         // Normals of ground
         let bx = this.ball_location[0][3];
         let bz = this.ball_location[2][3];
         this.norm_vec = vec3(0,0.01,0);
-        this.z_bound = 1.05;
+        this.z_bound = 1.00;
         //if ((bx > 15.0 && bx < 15.0+Math.sqrt(3.0)/2.0*10.0) && (bz > -2.5 && bz < 2.5)) {
-        if ((bx > 15.0)) {
-            this.z_bound = (bx-15.0)/Math.sqrt(3.0) + 1.05;
-            this.norm_vec = vec3(-0.01*0.5,0.01*Math.sqrt(3.0)/2.0,0);
+        if ((bx > 15.0 && bx < 85.0)) {
+            this.z_bound = (bx-15.0)/Math.sqrt(3.0) + 1.00;
+            this.norm_vec = vec3(-0.01*0.5,0.01*Math.sqrt(3.0)/2.0,0); // Magnitude 0.01
+        } else if (bx > 50.0) {
+            this.z_bound = 70.0/Math.sqrt(3.0) + 1.00;
         }
 
         if (this.ball_location[1][3] < this.z_bound) {
@@ -363,8 +463,10 @@ export class Assignment3 extends Scene {
             this.grav_golf_ball(); // apply gravity before move
             this.move_golf_ball();
             if (this.ball_location[1][3] <= this.z_bound) {
-                this.ground_norm_golf_ball();
+                this.ground_norm_golf_ball(); // If on a ground plane, move parallel to plane
                 this.friction_update(dt);
+            } else {
+                this.drag_update(dt);
             }
         }
         this.shapes.golfBall.draw(context, program_state, this.ball_location, this.materials.golfBall);
@@ -427,7 +529,13 @@ export class Assignment3 extends Scene {
         let new_ball_vel = ((old_ball_dir.times(old_ball_speed)).plus(this.norm_vec));
         this.ball_speed = new_ball_vel.norm();
         if (new_ball_vel[0] !== 0 || new_ball_vel[1] !== 0 || new_ball_vel[2] !== 0) {
-            this.ball_direction = new_ball_vel.normalized();
+            this.ball_direction = this.ball_direction.minus(this.norm_vec.times((this.ball_direction[0]*this.norm_vec[0] + this.ball_direction[1]*this.norm_vec[1] + this.ball_direction[2]*this.norm_vec[2]) / 0.01 / 0.01));
+            //this.ball_direction = this.ball_direction.minus(this.norm_vec.times(this.ball_direction.dot(this.norm_vec) / this.norm_vec.norm() / this.norm_vec.norm()));
+            this.ball_speed = this.ball_speed * (this.ball_direction[0]*old_ball_dir[0] + this.ball_direction[1]*old_ball_dir[1] + this.ball_direction[2]*old_ball_dir[2]);
+            if (this.ball_direction[0] === 0.0 && this.ball_direction[1] === 0.0 && this.ball_direction[2] === 0.0 ) {
+                this.ball_direction = new_ball_vel.normalized();
+                this.ball_speed = new_ball_vel.norm();
+            }
         } else {
             this.ball_direction = vec3(0,0,0);
         }
@@ -435,7 +543,8 @@ export class Assignment3 extends Scene {
 
     move_golf_ball(){
         const velocity = this.get_ball_velocity();
-        if(this.ball_speed < this.speed_threshhold){
+        //if(this.ball_speed < this.speed_threshhold){
+        if (this.ball_speed < this.speed_threshhold && this.norm_vec[0] === 0.0 && this.norm_vec[2] === 0.0) {
             this.stopping_handler();
             return;
         }
@@ -446,6 +555,7 @@ export class Assignment3 extends Scene {
     display_golf_hole(context, program_state, hole_transform) {
         for (let i = 0; i < 4; i++) {
             this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, this.materials.golfHole);
+            this.shapes.golfHoleGrassEdge.draw(context, program_state, hole_transform, this.materials.flat_terrain);
             hole_transform = hole_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
         }
     }
@@ -453,7 +563,22 @@ export class Assignment3 extends Scene {
     friction_update(dt) {
         //only decelerate as much as needed for each frame
         const friction_update = dt * this.friction_coefficient * this.ball_speed;
+        //const friction_update = dt * this.friction_coefficient * 10.0;
         this.ball_speed = this.ball_speed - friction_update;
+        if (this.ball_speed < 0.0) {
+            this.ball_speed = 0.0;
+            //this.stopping_handler();
+        }
+    }
+
+    drag_update(dt) {
+        //const drag_update = dt * this.drag_coefficient * this.ball_speed;
+        const drag_update = dt * this.drag_coefficient * 1.0;
+        this.ball_speed = this.ball_speed - drag_update;
+        if (this.ball_speed < 0.0) {
+            this.ball_speed = 0.0;
+            //this.stopping_handler();
+        }
     }
 
     reflect_ball_dir(norm_of_collider) {
