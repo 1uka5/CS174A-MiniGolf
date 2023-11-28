@@ -198,10 +198,13 @@ export class Assignment3 extends Scene {
         this.grav_vec = vec3(0,-0.01,0);
         this.norm_vec = vec3(0,0.01,0);
 
-        this.x_bound = 13.95; // 15 - 0.05 for wall width - 1 for radius of golf ball
-        this.y_bound = 13.95;
+        this.x_bound_low = -13.95; // 15 - 0.05 for wall width - 1 for radius of golf ball
+        this.x_bound_high = 114.95;
+        this.y_bound_low = -13.95;
+        this.y_bound_high = 13.95;
         this.z_bound = 1.05; // 0.05 ground height + 1 radius of golf ball
         // some intersection with ground = golf is "in grass" rather than floating above
+        this.entered_hole = false;
 
         this.cam_dir = 0.0;
         this.cam_angle = 0.0;
@@ -223,7 +226,8 @@ export class Assignment3 extends Scene {
         this.new_line();
         //for now, allow simple direction reversal
         this.key_triggered_button("Reverse the direction of the golf ball", ["x"],
-            () => this.ball_direction = Mat4.rotation(Math.PI, 0, 1, 0).times(this.ball_direction));
+            //() => this.ball_direction = Mat4.rotation(Math.PI, 0, 1, 0).times(this.ball_direction)
+                    () => this.ball_direction = this.ball_direction.times(-1));
         this.new_line();
         this.key_triggered_button("Select hit direction/power", ["k"],
             () => this.hit_direction_change ? this.hit_direction_handler() : this.hit_power_handler());
@@ -324,9 +328,15 @@ export class Assignment3 extends Scene {
 
         // Test rotate light
         let light_transform = vec4(5, 5, 0, 1);
+        let light_color = hex_color("#ffffff");
         //light_transform = vec4(2.5+2.5*Math.sin(t), 30, 2.5+2.5*Math.cos(t), 1);
         light_transform = vec4(this.ball_location[0][3], this.ball_location[1][3] + 5, this.ball_location[2][3], 1);
-        program_state.lights = [new Light(light_transform, color(1, 1, 1, 1), 1000)];
+        if (this.ball_moving) {
+            light_color = hex_color("#ff8888");
+        } else {
+            light_color = hex_color("#ffffff");
+        }
+        program_state.lights = [new Light(light_transform, light_color, 1000)];
 
         //this.shapes.torus.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
 
@@ -419,20 +429,20 @@ export class Assignment3 extends Scene {
             this.reflect_ball_dir(vec3(-1,0,0)); // Automatic normalize in function
         }
          */
-        if (this.ball_location[2][3] >= this.y_bound){
-            this.ball_location[2][3] = this.y_bound - 0.01;
+        if (this.ball_location[2][3] >= this.y_bound_high){
+            this.ball_location[2][3] = this.y_bound_high - 0.01;
             this.reflect_ball_dir(vec3(0,0,-1));
         }
-        if (this.ball_location[0][3] <= this.x_bound * -1){
-            this.ball_location[0][3] = -1 * this.x_bound + 0.01;
+        if (this.ball_location[0][3] <= this.x_bound_low){
+            this.ball_location[0][3] = this.x_bound_low + 0.01;
             this.reflect_ball_dir(vec3(1,0,0));
         }
-        if (this.ball_location[2][3] <= this.y_bound * -1){
-            this.ball_location[2][3] = -1 * this.y_bound + 0.01;
+        if (this.ball_location[2][3] <= this.y_bound_low){
+            this.ball_location[2][3] = this.y_bound_low + 0.01;
             this.reflect_ball_dir(vec3(0,0,1));
         }
-        if (this.ball_location[0][3] >= 115.0){
-            this.ball_location[0][3] = 115.0 - 0.01;
+        if (this.ball_location[0][3] >= this.x_bound_high){
+            this.ball_location[0][3] = this.x_bound_high - 0.01;
             this.reflect_ball_dir(vec3(-1,0,0)); // Automatic normalize in function
         }
 
@@ -446,7 +456,20 @@ export class Assignment3 extends Scene {
             this.z_bound = (bx-15.0)/Math.sqrt(3.0) + 1.00;
             this.norm_vec = vec3(-0.01*0.5,0.01*Math.sqrt(3.0)/2.0,0); // Magnitude 0.01
         } else if (bx > 50.0) {
-            this.z_bound = 70.0/Math.sqrt(3.0) + 1.00;
+            if (this.entered_hole || bx > 98.0 && bx < 100.0 && bz > -2.0 && bz < 2.0 && this.ball_speed < 0.5 && this.ball_location[1][3] <= 70.0 / Math.sqrt(3.0) + 1.05) {
+                this.z_bound = 70.0/Math.sqrt(3.0) + 1.00 - 3.0 * (1.0 - (Math.abs(bx - 100)/2.0)**2) * (1.0 - (Math.abs(bz)/2.0)**2);
+                this.norm_vec = (vec3(-(bx-100.0), 0.01, -(bz))).normalized();
+                if (Math.abs(bx - 100)**2 + Math.abs(bz)**2 < 1) {
+                    this.norm_vec = vec3(0,0.01,0);
+                }
+                this.x_bound_high = 100.0; // Entered the hole
+                this.x_bound_low = 98.0;
+                this.y_bound_low = -2.0;
+                this.y_bound_high = 2.0;
+                this.entered_hole = true;
+            } else {
+                this.z_bound = 70.0 / Math.sqrt(3.0) + 1.00;
+            }
         }
 
         if (this.ball_location[1][3] < this.z_bound) {
