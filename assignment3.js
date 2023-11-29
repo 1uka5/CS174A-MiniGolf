@@ -2,25 +2,9 @@ import {defs, tiny} from './examples/common.js';
 
 
 const {
-    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene,
+    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
 } = tiny;
-class Cube extends Shape {
-    constructor() {
-        super("position", "normal",);
-        // Loop 3 times (for each axis), and inside loop twice (for opposing cube sides):
-        this.arrays.position = Vector3.cast(
-            [-1, -1, -1], [1, -1, -1], [-1, -1, 1], [1, -1, 1], [1, 1, -1], [-1, 1, -1], [1, 1, 1], [-1, 1, 1],
-            [-1, -1, -1], [-1, -1, 1], [-1, 1, -1], [-1, 1, 1], [1, -1, 1], [1, -1, -1], [1, 1, 1], [1, 1, -1],
-            [-1, -1, 1], [1, -1, 1], [-1, 1, 1], [1, 1, 1], [1, -1, -1], [-1, -1, -1], [1, 1, -1], [-1, 1, -1]);
-        this.arrays.normal = Vector3.cast(
-            [0, -1, 0], [0, -1, 0], [0, -1, 0], [0, -1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0],
-            [-1, 0, 0], [-1, 0, 0], [-1, 0, 0], [-1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0], [1, 0, 0],
-            [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, 1], [0, 0, -1], [0, 0, -1], [0, 0, -1], [0, 0, -1]);
-        // Arrange the vertices into a square shape in texture space too:
-        this.indices.push(0, 1, 2, 1, 3, 2, 4, 5, 6, 5, 7, 6, 8, 9, 10, 9, 11, 10, 12, 13,
-            14, 13, 15, 14, 16, 17, 18, 17, 19, 18, 20, 21, 22, 21, 23, 22);
-    }
-}
+const {Cube,Textured_Phong} = defs;
 
 class TwoDGolfHole extends Shape {
     constructor() {
@@ -146,7 +130,8 @@ export class Assignment3 extends Scene {
             twoDGolfHole: new TwoDGolfHole(),
             threeDGolfHoleCorner: new ThreeDGolfHoleCorner(),
             golfHoleGrassEdge: new GolfHoleGrassEdge(),
-            angleBall: new defs.Subdivision_Sphere(4)
+            angleBall: new defs.Subdivision_Sphere(4),
+            cube1: new Cube()
  
         };
 
@@ -158,13 +143,23 @@ export class Assignment3 extends Scene {
             test2: new Material(new Gouraud_Shader(),
                 {ambient: .4, diffusivity: .6, color: hex_color("#992828")}),
             ring: new Material(new Ring_Shader()),
-            flat_terrain: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.0, specularity: 0.0, color: hex_color("#30ff30")}),
+            flat_terrain: new Material(new defs.Phong_Shader(), {
+                ambient: 0.7, 
+                diffusivity: 0.0, 
+                specularity: 0.0, 
+                color: hex_color("#30ff30")
+            }),
             wall: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.2, specularity: 0.0, color: hex_color("#f0f0f0")}),
             // TODO:  Fill in as many additional material objects as needed in this key/value table.
             //        (Requirement 4)
             golfBall: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
             angleBall: new Material(new defs.Phong_Shader(), {color: hex_color("#000000")}),
             golfHole: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#bbbbbb")}),
+            grass: new Material(new Textured_Phong(), {
+                color: hex_color("#000000"),
+                ambient: 1, 
+                texture: new Texture("assets/grassTex.png", "NEAREST")
+            })
  
         }
 
@@ -208,6 +203,8 @@ export class Assignment3 extends Scene {
 
         this.cam_dir = 0.0;
         this.cam_angle = 0.0;
+
+        this.cube1_transform = Mat4.identity().times(Mat4.translation(0, 5, 0, 0));
 
     }
 
@@ -342,7 +339,7 @@ export class Assignment3 extends Scene {
 
         // Ground 1
         let ground_transform = model_transform.times(Mat4.scale(15,0.01,15));
-        this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.flat_terrain);
+        this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.grass);
         let wall_transform = Mat4.identity();
         for (let i = 0; i < 4; i++) {
             wall_transform = wall_transform.times(Mat4.translation(15,0,0));
@@ -363,7 +360,7 @@ export class Assignment3 extends Scene {
         //slope_transform = slope_transform.times(Mat4.scale(35.0*2.0/Math.sqrt(3.0),0.1,15));
         slope_transform = slope_transform.times(Mat4.scale(35,0.01,15));
         slope_transform = slope_transform.times(my_m);
-        this.shapes.flat_terrain.draw(context, program_state, slope_transform, this.materials.flat_terrain)
+        this.shapes.flat_terrain.draw(context, program_state, slope_transform, this.materials.grass)
         // Slope walls
         my_m = Mat4.identity();
         my_m[1][2] = 17.5*2.0/Math.sqrt(3.0); // Sheer to match slope
@@ -387,7 +384,7 @@ export class Assignment3 extends Scene {
         for (let i = 0; i < 4; i++) {
             ground_transform = ground_transform.times(Mat4.translation(8.5,0,0));
             ground_transform = ground_transform.times(Mat4.scale(6.5,0.01,2));
-            this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.flat_terrain);
+            this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.grass);
             ground_transform = ground_transform.times(Mat4.scale(1/6.5,100,1/2));
             ground_transform = ground_transform.times(Mat4.translation(-8.5,0,0));
             ground_transform = ground_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
@@ -395,7 +392,7 @@ export class Assignment3 extends Scene {
         for (let i = 0; i < 4; i++) {
             ground_transform = ground_transform.times(Mat4.translation(8.5,0,8.5));
             ground_transform = ground_transform.times(Mat4.scale(6.5,0.01,6.5));
-            this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.flat_terrain);
+            this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.grass);
             ground_transform = ground_transform.times(Mat4.scale(1/6.5,100,1/6.5));
             ground_transform = ground_transform.times(Mat4.translation(-8.5,0,-8.5));
             ground_transform = ground_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
@@ -523,7 +520,6 @@ export class Assignment3 extends Scene {
         //console.log(this.ball_location[2]);
         //console.log(this.ball_location[3]);
         //console.log("yes");
-
 
 
     }
