@@ -99,11 +99,14 @@ class GolfHoleGrassEdge extends Shape {
         super("position", "normal",);
         // Loop 3 times (for each axis), and inside loop twice (for opposing cube sides):
         this.arrays.position = Vector3.cast(
-            [0, 0, -Math.sqrt(2)], [-1, 0, -1], [-Math.sqrt(2), 0, -Math.sqrt(2)], [-Math.sqrt(2), 0, 0]);
+            [0, 0, -Math.sqrt(2)], [-1, 0, -1], [-Math.sqrt(2), 0, -Math.sqrt(2)],
+            [-Math.sqrt(2), 0, -Math.sqrt(2)], [-1, 0, -1], [-Math.sqrt(2), 0, 0]);
         this.arrays.normal = Vector3.cast(
-            [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]);
+            [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0], [0, 1, 0]);
         // Arrange the vertices into a square shape in texture space too:
-        this.indices.push(0, 1, 2, 2, 1, 3);
+        this.indices.push(0, 1, 2, 3, 4, 5);
+        this.arrays.texture_coord = Vector.cast([0, 0, -Math.sqrt(2)], [-1, 0, -1], [-Math.sqrt(2), 0, -Math.sqrt(2)],
+            [-Math.sqrt(2), 0, -Math.sqrt(2)], [-1, 0, -1], [-Math.sqrt(2), 0, 0]);
     }
 }
 
@@ -117,7 +120,7 @@ export class Assignment3 extends Scene {
         this.shapes = {
             torus: new defs.Torus(15, 15),
             torus2: new defs.Torus(3, 15),
-            circle: new defs.Regular_2D_Polygon(1, 15),
+            circle: new defs.Regular_2D_Polygon(1, 60),
             flat_terrain: new Cube(),
             wall: new Cube(),
             // TODO:  Fill in as many additional shape instances as needed in this key/value table.
@@ -179,6 +182,11 @@ export class Assignment3 extends Scene {
                 color: hex_color("#000000"),
                 ambient: 1, 
                 texture: new Texture("assets/mud.png", "NEAREST")
+            }),
+            compass: new Material(new Textured_Phong(), {
+                color: hex_color("#000000"),
+                ambient: 1,
+                texture: new Texture("assets/img_1.png", "NEAREST")
             })
  
         }
@@ -187,7 +195,8 @@ export class Assignment3 extends Scene {
         this.initial_camera_location = Mat4.look_at(vec3(0, 10, 20), vec3(0, 0, 0), vec3(0, 1, 0));
         this.ball_moving = false;
         this.hit_power_change = false;
-        this.hit_direction_change = true;
+        //this.hit_direction_change = true;
+        this.hit_direction_change = false;
 
 
         this.ball_location = Mat4.translation(85, 1, 0).times(Mat4.identity());
@@ -223,8 +232,24 @@ export class Assignment3 extends Scene {
 
         this.cam_dir = 0.0;
         this.cam_angle = 0.0;
+        this.cam_loc = Mat4.identity().times(Mat4.translation(-85,-61,-80));
+        this.m_x = 1002.0; // center of compass
+        this.m_y = 527.0; // center of compass
 
         this.cube1_transform = Mat4.identity().times(Mat4.translation(0, 5, 0, 0));
+
+        this.canv = document.querySelector("#main-canvas.canvas-widget");
+        let canvelem = document.getElementById("main-canvas");
+        this.canv.addEventListener("click", (event) => {
+            if (0 === event.button) {
+                canvelem = document.getElementById("main-canvas");
+                let offset_x = parseFloat(getComputedStyle(canvelem).marginLeft.substring(0,3));
+                let offset_y = parseFloat(getComputedStyle(canvelem).marginTop.substring(0,3));
+                console.log((event.pageX - offset_x) + ":" + (event.pageY - offset_y));
+                this.m_x = event.pageX - offset_x;
+                this.m_y = event.pageY - offset_y;
+            }
+        });
 
     }
 
@@ -246,8 +271,8 @@ export class Assignment3 extends Scene {
             //() => this.ball_direction = Mat4.rotation(Math.PI, 0, 1, 0).times(this.ball_direction)
                     () => this.ball_direction = this.ball_direction.times(-1));
         this.new_line();
-        this.key_triggered_button("Select hit direction/power", ["k"],
-            () => this.hit_direction_change ? this.hit_direction_handler() : this.hit_power_handler());
+        //this.key_triggered_button("Select hit direction/power", ["k"],
+            //() => this.hit_direction_change ? this.hit_direction_handler() : this.hit_power_handler());
         //make sure hit power can only be changed when the ball is NOT moving
         //probably code it very similarly to angle ball rotation, make sure to recalc new angle ball location BEFORE doing rotation
         this.new_line();
@@ -303,6 +328,11 @@ export class Assignment3 extends Scene {
         this.hit_power_change = false;
         this.hit_power_handler();
         this.hit_direction_change = true;
+
+        // New
+        this.hit_power_change = false;
+        this.hit_direction_change = false;
+
         this.hit_power = this.power_speed_ratio; // trying to make small ball further away from golf ball after golf ball moves but not working
     }
 
@@ -341,6 +371,8 @@ export class Assignment3 extends Scene {
             desired = desired.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1)); // blend factor second param
             // Small issue as suggested in spec: lag behind planet = not centered on planet anymore
             program_state.set_camera(desired);
+            //this.cam_loc = desired;
+            this.cam_loc = Mat4.inverse(desired);
         }
 
         // Test rotate light
@@ -473,7 +505,7 @@ export class Assignment3 extends Scene {
             this.z_bound = (bx-15.0)/Math.sqrt(3.0) + 1.00;
             this.norm_vec = vec3(-0.01*0.5,0.01*Math.sqrt(3.0)/2.0,0); // Magnitude 0.01
         } else if (bx > 50.0) {
-            if (this.entered_hole || bx > 98.0 && bx < 100.0 && bz > -2.0 && bz < 2.0 && this.ball_speed < 0.5 && this.ball_location[1][3] <= 70.0 / Math.sqrt(3.0) + 1.05) {
+            if (this.entered_hole || bx > 98.0 && bx < 100.0 && bz > -2.0 && bz < 2.0 && this.ball_speed < 1.0 && this.ball_location[1][3] <= 70.0 / Math.sqrt(3.0) + 1.05) {
                 this.z_bound = 70.0/Math.sqrt(3.0) + 1.00 - 3.0 * (1.0 - (Math.abs(bx - 100)/2.0)**2) * (1.0 - (Math.abs(bz)/2.0)**2);
                 this.norm_vec = (vec3(-(bx-100.0), 0.01, -(bz))).normalized();
                 if (Math.abs(bx - 100)**2 + Math.abs(bz)**2 < 1) {
@@ -511,7 +543,18 @@ export class Assignment3 extends Scene {
         }
         this.shapes.golfBall.draw(context, program_state, this.ball_location, this.materials.golfBall);
 
-        if(this.hit_power_change){
+        // Draw circle on screen
+        this.shapes.circle.draw(context, program_state, this.cam_loc.times(Mat4.translation(6.25,-3,-10)), this.materials.compass);
+        // Mouse picking from main-canvas in index.html
+        //this.canv = document.querySelector("#main-canvas.canvas-widget");
+        //let canvelem = document.getElementById("main-canvas");
+        //this.canv = this.canv.getElementsByClassName()
+        //this.my_gl = this.canv.getContext("webgl");
+        //this.canv.addEventListener("mousemove", MouseMove, false);
+
+        //if(this.hit_power_change){
+            /*
+            // Old version
             if (this.hit_power >= this.power_speed_ratio*this.max_ball_speed_on_hit){
                 this.hit_power_increasing = false;
             }
@@ -523,24 +566,33 @@ export class Assignment3 extends Scene {
             }else{
                 this.hit_power -= dt/(Math.PI/2)*(this.max_ball_speed_on_hit-this.min_ball_speed_on_hit);
             }
-        }
-        if(this.hit_direction_change){
-            this.hit_direction = Mat4.rotation(2*dt, 0, 1, 0).times(this.hit_direction);
-        }
+             */
+            // New version
+            this.hit_power = (Math.pow((this.m_x-1002.0), 2) + Math.pow((this.m_y-527.0), 2)) / 400.0;
+            console.log(this.hit_power);
+            if (this.hit_power > this.max_ball_speed_on_hit * this.power_speed_ratio) {
+                this.hit_power = this.max_ball_speed_on_hit * this.power_speed_ratio;
+            }
+            if (this.hit_power < this.min_ball_speed_on_hit * this.power_speed_ratio) {
+                this.hit_power = this.min_ball_speed_on_hit * this.power_speed_ratio;
+            }
+        //}
+        //if(this.hit_direction_change){
 
+            // Old version
+            //this.hit_direction = Mat4.rotation(2*dt, 0, 1, 0).times(this.hit_direction);
+
+            // New version
+            console.log(Math.atan2((this.m_y-527.0),(this.m_x-1002.0)));
+            this.hit_direction = vec3(Math.sin(Math.atan2((this.m_y-527.0),(this.m_x-1002.0))),0,Math.cos(Math.atan2((this.m_y-527.0),(this.m_x-1002.0))));
+        //}
 
         if (!this.ball_moving){
+            this.ball_direction = this.hit_direction;
+            this.ball_speed = this.hit_power / this.power_speed_ratio;
             this.set_angle_ball_location();
             this.shapes.angleBall.draw(context,program_state,this.angle_ball_location,this.materials.angleBall);
         }
-
-
-        //console.log(this.ball_location[0]);
-        //console.log(this.ball_location[1]);
-        //console.log(this.ball_location[2]);
-        //console.log(this.ball_location[3]);
-        //console.log("yes");
-
 
     }
 
@@ -594,7 +646,7 @@ export class Assignment3 extends Scene {
     display_golf_hole(context, program_state, hole_transform) {
         for (let i = 0; i < 4; i++) {
             this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, this.materials.golfHole);
-            this.shapes.golfHoleGrassEdge.draw(context, program_state, hole_transform, this.materials.flat_terrain);
+            this.shapes.golfHoleGrassEdge.draw(context, program_state, hole_transform, this.materials.grass);
             hole_transform = hole_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
         }
     }
