@@ -159,6 +159,26 @@ export class Assignment3 extends Scene {
                 color: hex_color("#000000"),
                 ambient: 1, 
                 texture: new Texture("assets/grassTex.png", "NEAREST")
+            }),
+            sand: new Material(new Textured_Phong(), {
+                color: hex_color("#000000"),
+                ambient: 1, 
+                texture: new Texture("assets/sand.png", "NEAREST")
+            }),
+            sand2: new Material(new Textured_Phong(), {
+                color: hex_color("#000000"),
+                ambient: 1, 
+                texture: new Texture("assets/sand2.png", "NEAREST")
+            }),
+            dirt: new Material(new Textured_Phong(), {
+                color: hex_color("#000000"),
+                ambient: 1, 
+                texture: new Texture("assets/dirt.png", "NEAREST")
+            }),
+            mud: new Material(new Textured_Phong(), {
+                color: hex_color("#000000"),
+                ambient: 1, 
+                texture: new Texture("assets/mud.png", "NEAREST")
             })
  
         }
@@ -339,7 +359,7 @@ export class Assignment3 extends Scene {
 
         // Ground 1
         let ground_transform = model_transform.times(Mat4.scale(15,0.01,15));
-        this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.grass);
+        this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.sand);
         let wall_transform = Mat4.identity();
         for (let i = 0; i < 4; i++) {
             wall_transform = wall_transform.times(Mat4.translation(15,0,0));
