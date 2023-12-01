@@ -155,6 +155,8 @@ export class Assignment3 extends Scene {
             wall: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.2, specularity: 0.0, color: hex_color("#f0f0f0")}),
             // TODO:  Fill in as many additional material objects as needed in this key/value table.
             //        (Requirement 4)
+            flagPole: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.2, specularity: 0.0, color: hex_color("#000000")}),
+            flag: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.2, specularity: 0.0, color: hex_color("#FF0000")}),
             golfBall: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
             angleBall: new Material(new defs.Phong_Shader(), {color: hex_color("#000000")}),
             golfHole: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#bbbbbb")}),
@@ -470,6 +472,16 @@ export class Assignment3 extends Scene {
         //this.shapes.twoDGolfHole.draw(context, program_state, hole_transform, this.materials.golfHole);
         //this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, this.materials.golfHole);
         this.display_golf_hole(context, program_state, hole_transform);
+
+        let flagPole = hole_transform;
+        flagPole = flagPole.times(Mat4.scale(.15,3,.15)).times(Mat4.translation(.1,.8,0));
+        this.shapes.cube1.draw(context,program_state,flagPole,this.materials.flagPole);
+        let flag = flagPole;
+        console.log(program_state.animation_time%2.0);
+        flag = flag.times(Mat4.rotation(.5*Math.sin(t),0,1,0)).times(Mat4.scale(15,.3,.05)).times(Mat4.translation(1,2,0));
+        this.shapes.cube1.draw(context,program_state,flag,this.materials.flag);
+
+        
 
         //adds very basic boundaries
         /*
