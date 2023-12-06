@@ -2,14 +2,44 @@ import {defs, tiny} from './examples/common.js';
 
 // Credit to Robert Lu
 
+/*
+// Pull these names into this module's scope for convenience:
+const {vec3, vec4, vec, color, Matrix, Mat4, Light, Shape, Material, Shader, Texture, Scene} = tiny;
+const {Cube, Axis_Arrows, Textured_Phong, Phong_Shader, Basic_Shader, Subdivision_Sphere} = defs
+ */
+
 import {Shape_From_File} from './examples/obj-file-demo.js'
-import {Color_Phong_Shader, Shadow_Textured_Phong_Shader,
-    Depth_Texture_Shader_2D, Buffered_Texture, LIGHT_DEPTH_TEX_SIZE} from './examples/shadow-demo-shaders.js'
+import {
+    Color_Phong_Shader, Shadow_Textured_Phong_Shader,
+    Depth_Texture_Shader_2D, Buffered_Texture, LIGHT_DEPTH_TEX_SIZE, Textured_Shadow_Textured_Phong_Shader
+} from './examples/shadow-demo-shaders.js'
+
 
 const {
-    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
+    Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture
 } = tiny;
-const {Cube,Textured_Phong} = defs;
+//const {Cube,Textured_Phong} = defs;
+const {Cube, Axis_Arrows, Textured_Phong, Phong_Shader, Basic_Shader, Subdivision_Sphere} = defs
+
+
+const Square =
+    class Square extends tiny.Vertex_Buffer {
+        constructor() {
+            super("position", "normal", "texture_coord");
+            this.arrays.position = [
+                vec3(0, 0, 0), vec3(1, 0, 0), vec3(0, 1, 0),
+                vec3(1, 1, 0), vec3(1, 0, 0), vec3(0, 1, 0)
+            ];
+            this.arrays.normal = [
+                vec3(0, 0, 1), vec3(0, 0, 1), vec3(0, 0, 1),
+                vec3(0, 0, 1), vec3(0, 0, 1), vec3(0, 0, 1),
+            ];
+            this.arrays.texture_coord = [
+                vec(0, 0), vec(1, 0), vec(0, 1),
+                vec(1, 1), vec(1, 0), vec(0, 1)
+            ]
+        }
+    }
 
 class TwoDGolfHole extends Shape {
     constructor() {
@@ -139,7 +169,11 @@ export class Assignment3 extends Scene {
             threeDGolfHoleCorner: new ThreeDGolfHoleCorner(),
             golfHoleGrassEdge: new GolfHoleGrassEdge(),
             angleBall: new defs.Subdivision_Sphere(4),
-            cube1: new Cube()
+            cube1: new Cube(),
+            "teapot": new Shape_From_File("assets/teapot.obj"),
+            "sphere": new Subdivision_Sphere(6),
+            "cube": new Cube(),
+            "square_2d": new Square(),
  
         };
 
@@ -157,23 +191,49 @@ export class Assignment3 extends Scene {
                 specularity: 0.0, 
                 color: hex_color("#30ff30")
             }),
-            wall: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.2, specularity: 0.0, color: hex_color("#f0f0f0")}),
+            //wall: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.2, specularity: 0.0, color: hex_color("#f0f0f0")}),
+            wall: new Material(new Textured_Shadow_Textured_Phong_Shader(1), {
+                color: hex_color("#000000"), ambient: 0.7, diffusivity: 0.2, specularity: 0.0, smoothness: 64,
+                color_texture: new Texture("assets/wall.jpg", "NEAREST"),
+                light_depth_texture: null
+            }),
             // TODO:  Fill in as many additional material objects as needed in this key/value table.
             //        (Requirement 4)
-            flagPole: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.2, specularity: 0.0, color: hex_color("#000000")}),
-            flag: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.2, specularity: 0.0, color: hex_color("#FF0000")}),
-            golfBall: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
+            //flagPole: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.2, specularity: 0.0, color: hex_color("#000000")}),
+            flagPole: new Material(new Textured_Shadow_Textured_Phong_Shader(1), {
+                color: hex_color("#000000"),
+                ambient: 0.7, diffusivity: 0.2, specularity: 0.0, smoothness: 64,
+                color_texture: new Texture("assets/flagpole.png"),
+                light_depth_texture: null
+            }),
+            //flag: new Material(new defs.Phong_Shader(), {ambient: 0.7, diffusivity: 0.2, specularity: 0.0, color: hex_color("#FF0000")}),
+            flag: new Material(new Textured_Shadow_Textured_Phong_Shader(1), {
+                ambient: 0.7, diffusivity: 0.2, specularity: 0.0, color: hex_color("#000000"),
+                color_texture: new Texture("assets/uclalogo.png", "NEAREST"),
+                light_depth_texture: null
+            }),
+            //golfBall: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#ffffff")}),
+            golfBall: new Material(new Textured_Shadow_Textured_Phong_Shader(1), {
+                ambient: 0.4, diffusivity: 0.0, specularity: 0.0, color: hex_color("#000000"),
+                color_texture: new Texture("assets/170520_01_Golf_seamless_pattern_vector.jpg", "NEAREST"),
+                light_depth_texture: null
+            }),
             angleBall: new Material(new defs.Phong_Shader(), {color: hex_color("#000000")}),
             golfHole: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#bbbbbb")}),
-            grass: new Material(new Textured_Phong(), {
-                color: hex_color("#000000"),
-                ambient: 1, 
-                texture: new Texture("assets/grassTex.png", "NEAREST")
+            //grass: new Material(new Textured_Phong(), {
+            grass: new Material(new Textured_Shadow_Textured_Phong_Shader(1), {
+                //color: hex_color("#000000"),
+                //ambient: 1,
+                //texture: new Texture("assets/grassTex.png", "NEAREST"),
+                color: hex_color("#000000"), ambient: 0.0, diffusivity: 0.6, specularity: 0.4, smoothness: 64,
+                color_texture: new Texture("assets/grassTex.png", "NEAREST"),
+                light_depth_texture: null
             }),
-            sand: new Material(new Textured_Phong(), {
+            //sand: new Material(new Textured_Phong(), {
+            sand: new Material(new Textured_Shadow_Textured_Phong_Shader(1), {
                 color: hex_color("#000000"),
                 ambient: 1, 
-                texture: new Texture("assets/sand.png", "NEAREST")
+                color_texture: new Texture("assets/sand.png", "NEAREST")
             }),
             sand2: new Material(new Textured_Phong(), {
                 color: hex_color("#000000"),
@@ -247,6 +307,37 @@ export class Assignment3 extends Scene {
 
         this.cube1_transform = Mat4.identity().times(Mat4.translation(0, 5, 0, 0));
 
+
+        // For the teapot
+        this.stars = new Material(new Shadow_Textured_Phong_Shader(1), {
+            color: color(.5, .5, .5, 1),
+            ambient: .4, diffusivity: .5, specularity: .5,
+            color_texture: new Texture("assets/grassTex.png"),
+            light_depth_texture: null
+
+        });
+        // For the floor or other plain objects
+        this.floor = new Material(new Textured_Shadow_Textured_Phong_Shader(1), {
+            color: hex_color("#000000"), ambient: 0.0, diffusivity: 0.6, specularity: 0.4, smoothness: 64,
+            color_texture: new Texture("assets/grassTex.png"),
+            light_depth_texture: null
+        })
+        // For the first pass
+        this.pure = new Material(new Color_Phong_Shader(), {
+        })
+        // For light source
+        this.light_src = new Material(new Phong_Shader(), {
+            color: color(1, 1, 1, 1), ambient: 1, diffusivity: 0, specularity: 0
+        });
+        // For depth texture display
+        this.depth_tex =  new Material(new Depth_Texture_Shader_2D(), {
+            color: color(0, 0, .0, 1),
+            ambient: 1, diffusivity: 0, specularity: 0, texture: null
+        });
+
+        // To make sure texture initialization only does once
+        this.init_ok = false;
+
         this.canv = document.querySelector("#main-canvas.canvas-widget");
         let canvelem = document.getElementById("main-canvas");
         this.canv.addEventListener("click", (event) => {
@@ -293,13 +384,13 @@ export class Assignment3 extends Scene {
         this.new_line();
         this.key_triggered_button("Spin camera right", ["p"],
             () => this.cam_dir = 1.0);
-        /*
+
         // DEBUG
         this.new_line();
         this.key_triggered_button("Toggle free move camera", ["~"],
             () => this.enable_free_fly_cam = !this.enable_free_fly_cam);
 
-         */
+
     }
 
     set_angle_ball_location(){
@@ -360,9 +451,92 @@ export class Assignment3 extends Scene {
         return this.grav_vec.times(this.grav_mult);
     }
 
+
+    texture_buffer_init(gl) {
+        // Depth Texture
+        this.lightDepthTexture = gl.createTexture();
+        // Bind it to TinyGraphics
+        this.light_depth_texture = new Buffered_Texture(this.lightDepthTexture);
+        this.stars.light_depth_texture = this.light_depth_texture
+        this.floor.light_depth_texture = this.light_depth_texture
+        this.materials.grass.light_depth_texture = this.light_depth_texture
+        this.materials.flagPole.light_depth_texture = this.light_depth_texture
+        this.materials.flag.light_depth_texture = this.light_depth_texture
+        this.materials.golfBall.light_depth_texture = this.light_depth_texture
+
+        this.lightDepthTextureSize = LIGHT_DEPTH_TEX_SIZE;
+        gl.bindTexture(gl.TEXTURE_2D, this.lightDepthTexture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,      // target
+            0,                  // mip level
+            gl.DEPTH_COMPONENT, // internal format
+            this.lightDepthTextureSize,   // width
+            this.lightDepthTextureSize,   // height
+            0,                  // border
+            gl.DEPTH_COMPONENT, // format
+            gl.UNSIGNED_INT,    // type
+            null);              // data
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+        // Depth Texture Buffer
+        this.lightDepthFramebuffer = gl.createFramebuffer();
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.lightDepthFramebuffer);
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,       // target
+            gl.DEPTH_ATTACHMENT,  // attachment point
+            gl.TEXTURE_2D,        // texture target
+            this.lightDepthTexture,         // texture
+            0);                   // mip level
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+
+        // create a color texture of the same size as the depth texture
+        // see article why this is needed_
+        this.unusedTexture = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.unusedTexture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            0,
+            gl.RGBA,
+            this.lightDepthTextureSize,
+            this.lightDepthTextureSize,
+            0,
+            gl.RGBA,
+            gl.UNSIGNED_BYTE,
+            null,
+        );
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+        // attach it to the framebuffer
+        gl.framebufferTexture2D(
+            gl.FRAMEBUFFER,        // target
+            gl.COLOR_ATTACHMENT0,  // attachment point
+            gl.TEXTURE_2D,         // texture target
+            this.unusedTexture,         // texture
+            0);                    // mip level
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    }
+
     display(context, program_state) {
         // display():  Called once per frame of animation.
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
+
+        const gl = context.context;
+
+        if (!this.init_ok) {
+            const ext = gl.getExtension('WEBGL_depth_texture');
+            if (!ext) {
+                return alert('need WEBGL_depth_texture');  // eslint-disable-line
+            }
+            this.texture_buffer_init(gl);
+
+            this.init_ok = true;
+        }
+
         if (!context.scratchpad.controls) {
             this.children.push(context.scratchpad.controls = new defs.Movement_Controls());
             // Define the global camera and projection matrices, which are stored in program_state.
@@ -386,13 +560,13 @@ export class Assignment3 extends Scene {
         let model_transform = Mat4.identity();
 
         // Camera work
-        this.cam_angle = (this.cam_angle + this.cam_dir * dt) % (2.0*Math.PI);
+        this.cam_angle = (this.cam_angle + this.cam_dir * dt) % (2.0 * Math.PI);
         if (!this.enable_free_fly_cam && this.ball_location != null) {
             let desired = this.ball_location;
-            desired = desired.times(Mat4.rotation(this.cam_angle, 0,1,0));
+            desired = desired.times(Mat4.rotation(this.cam_angle, 0, 1, 0));
             desired = desired.times(Mat4.translation(0, 20, 80));
             desired = Mat4.inverse(desired);
-            desired = desired.map((x,i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1)); // blend factor second param
+            desired = desired.map((x, i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1)); // blend factor second param
             // Small issue as suggested in spec: lag behind planet = not centered on planet anymore
             program_state.set_camera(desired);
             //this.cam_loc = desired;
@@ -403,7 +577,8 @@ export class Assignment3 extends Scene {
         let light_transform = vec4(5, 5, 0, 1);
         let light_color = hex_color("#ffffff");
         //light_transform = vec4(2.5+2.5*Math.sin(t), 30, 2.5+2.5*Math.cos(t), 1);
-        light_transform = vec4(this.ball_location[0][3], this.ball_location[1][3] + 5, this.ball_location[2][3], 1);
+        light_transform = vec4(this.ball_location[0][3], this.ball_location[1][3]+15, this.ball_location[2][3], 1);
+        //light_transform = vec4(this.ball_location[0][3], 100, this.ball_location[2][3], 1);
         if (this.ball_moving) {
             light_color = hex_color("#ff8888");
         } else {
@@ -411,17 +586,72 @@ export class Assignment3 extends Scene {
         }
         program_state.lights = [new Light(light_transform, light_color, 1000)];
 
+        // This is a rough target of the light.
+        // Although the light is point light, we need a target to set the POV of the light
+        this.light_view_target = vec4(this.ball_location[0][3], this.ball_location[1][3], this.ball_location[2][3], 1);
+        this.light_field_of_view = 130 * Math.PI / 180; // 130 degree
+
+        // Step 1: set the perspective and camera to the POV of light
+        this.light_position = light_transform;
+        const light_view_mat = Mat4.look_at(
+            vec3(this.light_position[0], this.light_position[1], this.light_position[2]),
+            vec3(this.light_view_target[0], this.light_view_target[1], this.light_view_target[2]),
+            vec3(0, 0, 1), // assume the light to target will have a up dir of +y, maybe need to change according to your case
+        );
+        const light_proj_mat = Mat4.perspective(this.light_field_of_view, 1, 0.5, 500);
+        // Bind the Depth Texture Buffer
+        gl.bindFramebuffer(gl.FRAMEBUFFER, this.lightDepthFramebuffer);
+        gl.viewport(0, 0, this.lightDepthTextureSize, this.lightDepthTextureSize);
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+        // Prepare uniforms
+        program_state.light_view_mat = light_view_mat;
+        program_state.light_proj_mat = light_proj_mat;
+        program_state.light_tex_mat = light_proj_mat;
+        program_state.view_mat = light_view_mat;
+        program_state.projection_transform = light_proj_mat;
+        this.render_scene(context, program_state, false, false, false);
+
+        // Step 2: unbind, draw to the canvas
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        gl.viewport(0, 0, gl.canvas.width, gl.canvas.height);
+        program_state.view_mat = program_state.camera_inverse;
+        program_state.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 0.5, 500);
+        this.render_scene(context, program_state, true, true, true);
+
+        // Step 3: display the textures
+        this.shapes.square_2d.draw(context, program_state,
+            Mat4.translation(-.99, .08, 0).times(
+                Mat4.scale(0.5, 0.5 * gl.canvas.width / gl.canvas.height, 1)
+            ),
+            this.depth_tex.override({texture: this.lightDepthTexture})
+        );
+
+    }
+
+    render_scene(context, program_state, shadow_pass, draw_light_source=false, draw_shadow=false) {
+
+        const t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
+        let model_transform = Mat4.identity();
+
+        let light_position = this.light_position;
+        let light_color = this.light_color;
+        program_state.draw_shadow = draw_shadow;
+
+        this.shapes.golfBall.draw(context, program_state, this.ball_location, shadow_pass? this.materials.golfBall : this.pure);
+
         //this.shapes.torus.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
 
         // Ground 1
         let ground_transform = model_transform.times(Mat4.scale(15,0.01,15));
-        this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.sand);
+        //this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.sand);
+        this.shapes.flat_terrain.draw(context, program_state, ground_transform, shadow_pass? this.materials.sand : this.pure);
         let wall_transform = Mat4.identity();
         for (let i = 0; i < 4; i++) {
             wall_transform = wall_transform.times(Mat4.translation(15,0,0));
             wall_transform = wall_transform.times(Mat4.scale(0.1,1,15.1));
             if (i !== 0) {
-                this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+                //this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+                this.shapes.wall.draw(context, program_state, wall_transform, shadow_pass? this.materials.wall : this.pure);
             }
             wall_transform = wall_transform.times(Mat4.scale(10,1,1/15.1));
             wall_transform = wall_transform.times(Mat4.translation(-15,0,0));
@@ -436,7 +666,8 @@ export class Assignment3 extends Scene {
         //slope_transform = slope_transform.times(Mat4.scale(35.0*2.0/Math.sqrt(3.0),0.1,15));
         slope_transform = slope_transform.times(Mat4.scale(35,0.01,15));
         slope_transform = slope_transform.times(my_m);
-        this.shapes.flat_terrain.draw(context, program_state, slope_transform, this.materials.grass)
+        //this.shapes.flat_terrain.draw(context, program_state, slope_transform, this.materials.grass);
+        this.shapes.flat_terrain.draw(context, program_state, slope_transform, shadow_pass? this.materials.grass : this.pure);
         // Slope walls
         my_m = Mat4.identity();
         my_m[1][2] = 17.5*2.0/Math.sqrt(3.0); // Sheer to match slope
@@ -445,13 +676,15 @@ export class Assignment3 extends Scene {
         wall_transform = wall_transform.times(Mat4.translation(15,17.5*2.0/Math.sqrt(3.0), 15.0+35));
         wall_transform = wall_transform.times(Mat4.scale(0.1,1,35));
         wall_transform = wall_transform.times(my_m);
-        this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+        //this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+        this.shapes.wall.draw(context, program_state, wall_transform, shadow_pass? this.materials.wall : this.pure);
         wall_transform = wall_transform.times(Mat4.inverse(my_m));
         wall_transform = wall_transform.times(Mat4.scale(10,1,1/15.0));
         wall_transform = wall_transform.times(Mat4.translation(-30,0,0));
         wall_transform = wall_transform.times(Mat4.scale(0.1,1,15.0));
         wall_transform = wall_transform.times(my_m);
-        this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+        //this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+        this.shapes.wall.draw(context, program_state, wall_transform, shadow_pass? this.materials.wall : this.pure);
         wall_transform = wall_transform.times(Mat4.inverse(my_m));
 
         // Ground 2
@@ -460,7 +693,8 @@ export class Assignment3 extends Scene {
         for (let i = 0; i < 4; i++) {
             ground_transform = ground_transform.times(Mat4.translation(8.5,0,0));
             ground_transform = ground_transform.times(Mat4.scale(6.5,0.01,2));
-            this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.grass);
+            //this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.grass);
+            this.shapes.flat_terrain.draw(context, program_state, ground_transform, shadow_pass? this.materials.grass : this.pure);
             ground_transform = ground_transform.times(Mat4.scale(1/6.5,100,1/2));
             ground_transform = ground_transform.times(Mat4.translation(-8.5,0,0));
             ground_transform = ground_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
@@ -468,7 +702,8 @@ export class Assignment3 extends Scene {
         for (let i = 0; i < 4; i++) {
             ground_transform = ground_transform.times(Mat4.translation(8.5,0,8.5));
             ground_transform = ground_transform.times(Mat4.scale(6.5,0.01,6.5));
-            this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.grass);
+            //this.shapes.flat_terrain.draw(context, program_state, ground_transform, this.materials.grass);
+            this.shapes.flat_terrain.draw(context, program_state, ground_transform, shadow_pass? this.materials.grass : this.pure);
             ground_transform = ground_transform.times(Mat4.scale(1/6.5,100,1/6.5));
             ground_transform = ground_transform.times(Mat4.translation(-8.5,0,-8.5));
             ground_transform = ground_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
@@ -480,7 +715,8 @@ export class Assignment3 extends Scene {
             wall_transform = wall_transform.times(Mat4.translation(15,0,0));
             wall_transform = wall_transform.times(Mat4.scale(0.1,1,15.0));
             if (i !== 2) {
-                this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+                //this.shapes.wall.draw(context, program_state, wall_transform, this.materials.wall);
+                this.shapes.wall.draw(context, program_state, wall_transform, shadow_pass? this.materials.wall : this.pure);
             }
             wall_transform = wall_transform.times(Mat4.scale(10,1,1/15.0));
             wall_transform = wall_transform.times(Mat4.translation(-15,0,0));
@@ -493,15 +729,17 @@ export class Assignment3 extends Scene {
         hole_transform = hole_transform.times(Mat4.scale(Math.sqrt(2),2,Math.sqrt(2)));
         //this.shapes.twoDGolfHole.draw(context, program_state, hole_transform, this.materials.golfHole);
         //this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, this.materials.golfHole);
-        this.display_golf_hole(context, program_state, hole_transform);
+        this.display_golf_hole(context, program_state, hole_transform, shadow_pass);
 
         let flagPole = hole_transform;
         flagPole = flagPole.times(Mat4.scale(.15,3,.15)).times(Mat4.translation(.1,.8,0));
-        this.shapes.cube1.draw(context,program_state,flagPole,this.materials.flagPole);
+        //this.shapes.cube1.draw(context,program_state,flagPole,this.materials.flagPole);
+        this.shapes.cube1.draw(context,program_state,flagPole, shadow_pass? this.materials.flagPole : this.pure);
         let flag = flagPole;
         console.log(program_state.animation_time%2.0);
         flag = flag.times(Mat4.rotation(.5*Math.sin(t),0,1,0)).times(Mat4.scale(15,.3,.05)).times(Mat4.translation(1,2,0));
-        this.shapes.cube1.draw(context,program_state,flag,this.materials.flag);
+        //this.shapes.cube1.draw(context,program_state,flag,this.materials.flag);
+        this.shapes.cube1.draw(context,program_state,flag, shadow_pass? this.materials.flag : this.pure);
 
         
 
@@ -575,7 +813,8 @@ export class Assignment3 extends Scene {
                 this.drag_update(dt);
             }
         }
-        this.shapes.golfBall.draw(context, program_state, this.ball_location, this.materials.golfBall);
+        //this.shapes.golfBall.draw(context, program_state, this.ball_location, this.materials.golfBall);
+        //this.shapes.golfBall.draw(context, program_state, this.ball_location, shadow_pass? this.materials.golfBall : this.pure);
 
         // Draw circle on screen
         this.shapes.circle.draw(context, program_state, this.cam_loc.times(Mat4.translation(6.25,-3,-10)), this.materials.compass);
@@ -677,10 +916,12 @@ export class Assignment3 extends Scene {
     }
 
 
-    display_golf_hole(context, program_state, hole_transform) {
+    display_golf_hole(context, program_state, hole_transform, shadow_pass) {
         for (let i = 0; i < 4; i++) {
             this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, this.materials.golfHole);
-            this.shapes.golfHoleGrassEdge.draw(context, program_state, hole_transform, this.materials.grass);
+            //this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, shadow_pass? this.floor : this.pure);
+            //this.shapes.golfHoleGrassEdge.draw(context, program_state, hole_transform, this.materials.grass);
+            this.shapes.golfHoleGrassEdge.draw(context, program_state, hole_transform, shadow_pass? this.floor : this.pure);
             hole_transform = hole_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
         }
     }
@@ -743,7 +984,7 @@ export class Assignment3 extends Scene {
         else{
             golf_model = saved_model.times(Mat4.translation(x,0,y));
         }
-        this.shapes.golfBall.draw(context, program_state, golf_model, this.materials.golfBall);
+        this.shapes.golfBall.draw(context, program_state, golf_model, shadow_pass? this.materials.golfBall : this.pure);
     }
 }
 
