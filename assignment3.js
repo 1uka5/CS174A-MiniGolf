@@ -1,5 +1,10 @@
 import {defs, tiny} from './examples/common.js';
 
+// Credit to Robert Lu
+
+import {Shape_From_File} from './examples/obj-file-demo.js'
+import {Color_Phong_Shader, Shadow_Textured_Phong_Shader,
+    Depth_Texture_Shader_2D, Buffered_Texture, LIGHT_DEPTH_TEX_SIZE} from './examples/shadow-demo-shaders.js'
 
 const {
     Vector, Vector3, vec, vec3, vec4, color, hex_color, Shader, Matrix, Mat4, Light, Shape, Material, Scene, Texture,
@@ -219,10 +224,11 @@ export class Assignment3 extends Scene {
         //really, this friction coefficient is friction coeff * g, but it is simpler to do this since g is a constant anyway
         this.friction_coefficient = 0.6;
         this.drag_coefficient = 0.5;
-        this.speed_threshhold = 0.02;
+        this.speed_threshhold = 0.01;
 
         this.grav_vec = vec3(0,-0.01,0);
         this.norm_vec = vec3(0,0.01,0);
+        this.grav_mult = 2.25;
 
         this.x_bound_low = -13.95; // 15 - 0.05 for wall width - 1 for radius of golf ball
         this.x_bound_high = 114.95;
@@ -237,6 +243,7 @@ export class Assignment3 extends Scene {
         this.cam_loc = Mat4.identity().times(Mat4.translation(-85,-61,-80));
         this.m_x = 1002.0; // center of compass
         this.m_y = 527.0; // center of compass
+        this.enable_free_fly_cam = false;
 
         this.cube1_transform = Mat4.identity().times(Mat4.translation(0, 5, 0, 0));
 
@@ -286,6 +293,13 @@ export class Assignment3 extends Scene {
         this.new_line();
         this.key_triggered_button("Spin camera right", ["p"],
             () => this.cam_dir = 1.0);
+        /*
+        // DEBUG
+        this.new_line();
+        this.key_triggered_button("Toggle free move camera", ["~"],
+            () => this.enable_free_fly_cam = !this.enable_free_fly_cam);
+
+         */
     }
 
     set_angle_ball_location(){
@@ -338,6 +352,14 @@ export class Assignment3 extends Scene {
         this.hit_power = this.power_speed_ratio; // trying to make small ball further away from golf ball after golf ball moves but not working
     }
 
+    get_norm_mult() {
+        return this.norm_vec.times(this.grav_mult);
+    }
+
+    get_grav_mult() {
+        return this.grav_vec.times(this.grav_mult);
+    }
+
     display(context, program_state) {
         // display():  Called once per frame of animation.
         // Setup -- This part sets up the scene's overall camera matrix, projection matrix, and lights:
@@ -365,7 +387,7 @@ export class Assignment3 extends Scene {
 
         // Camera work
         this.cam_angle = (this.cam_angle + this.cam_dir * dt) % (2.0*Math.PI);
-        if (this.ball_location != null) {
+        if (!this.enable_free_fly_cam && this.ball_location != null) {
             let desired = this.ball_location;
             desired = desired.times(Mat4.rotation(this.cam_angle, 0,1,0));
             desired = desired.times(Mat4.translation(0, 20, 80));
@@ -521,7 +543,7 @@ export class Assignment3 extends Scene {
                 this.z_bound = 70.0/Math.sqrt(3.0) + 1.00 - 3.0 * (1.0 - (Math.abs(bx - 100)/2.0)**2) * (1.0 - (Math.abs(bz)/2.0)**2);
                 this.norm_vec = (vec3(-(bx-100.0), 0.01, -(bz))).normalized();
                 if (Math.abs(bx - 100)**2 + Math.abs(bz)**2 < 1) {
-                    this.norm_vec = vec3(0,0.01,0);
+                    //this.norm_vec = vec3(0,0.01,0);
                 }
                 this.x_bound_high = 100.0; // Entered the hole
                 this.x_bound_low = 98.0;
@@ -615,7 +637,7 @@ export class Assignment3 extends Scene {
     grav_golf_ball() {
         let old_ball_speed = this.ball_speed;
         let old_ball_dir = this.ball_direction;
-        let new_ball_vel = ((old_ball_dir.times(old_ball_speed)).plus(this.grav_vec));
+        let new_ball_vel = ((old_ball_dir.times(old_ball_speed)).plus(this.get_grav_mult()));
         this.ball_speed = new_ball_vel.norm();
         if (new_ball_vel[0] !== 0 || new_ball_vel[1] !== 0 || new_ball_vel[2] !== 0) {
             this.ball_direction = new_ball_vel.normalized();
@@ -629,7 +651,7 @@ export class Assignment3 extends Scene {
     ground_norm_golf_ball() {
         let old_ball_speed = this.ball_speed;
         let old_ball_dir = this.ball_direction;
-        let new_ball_vel = ((old_ball_dir.times(old_ball_speed)).plus(this.norm_vec));
+        let new_ball_vel = ((old_ball_dir.times(old_ball_speed)).plus(this.get_norm_mult()));
         this.ball_speed = new_ball_vel.norm();
         if (new_ball_vel[0] !== 0 || new_ball_vel[1] !== 0 || new_ball_vel[2] !== 0) {
             this.ball_direction = this.ball_direction.minus(this.norm_vec.times((this.ball_direction[0]*this.norm_vec[0] + this.ball_direction[1]*this.norm_vec[1] + this.ball_direction[2]*this.norm_vec[2]) / 0.01 / 0.01));
@@ -647,7 +669,7 @@ export class Assignment3 extends Scene {
     move_golf_ball(){
         const velocity = this.get_ball_velocity();
         //if(this.ball_speed < this.speed_threshhold){
-        if (this.ball_speed < this.speed_threshhold && this.norm_vec[0] === 0.0 && this.norm_vec[2] === 0.0) {
+        if (this.ball_speed < (this.speed_threshhold * this.grav_mult) && this.norm_vec[0] === 0.0 && this.norm_vec[2] === 0.0) {
             this.stopping_handler();
             return;
         }
