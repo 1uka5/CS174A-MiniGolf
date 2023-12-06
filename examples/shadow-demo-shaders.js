@@ -560,7 +560,8 @@ export class Textured_Shadow_Textured_Phong_Shader extends defs.Phong_Shader {
                               
                         float shadowness = PCF_shadow(light_tex_coord.xy, projected_depth);
                         
-                        if (inRange && shadowness > 0.001) {
+                        //if (inRange && shadowness > 0.001) {
+                        if (inRange && shadowness > 0.3) {
                             diffuse *= 0.2 + 0.8 * (1.0 - shadowness);
                             specular *= 1.0 - shadowness;
                             gl_FragColor.xyz *= 0.5; // Debug

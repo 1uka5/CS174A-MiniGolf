@@ -112,7 +112,8 @@ class ThreeDGolfHoleCorner extends Shape {
             [0, 0, 1], [0, 0, 1], [0, 0, 1]);
         // Cube normals = sets of 4, each correspond to outward of the face?
         // Arrange the vertices into a square shape in texture space too:
-        this.indices.push(0, 1, 2,
+        this.indices.push(
+            0, 1, 2,
             3, 4, 5,
             6, 7, 8,
             9, 10, 11,
@@ -125,7 +126,9 @@ class ThreeDGolfHoleCorner extends Shape {
             30, 31, 32,
             33, 34, 35,
             36, 37, 38,
-            39, 40, 41);
+            39, 40, 41
+        );
+        this.arrays.texture_coord = this.arrays.position;
     }
 }
 
@@ -219,7 +222,13 @@ export class Assignment3 extends Scene {
                 light_depth_texture: null
             }),
             angleBall: new Material(new defs.Phong_Shader(), {color: hex_color("#c00000")}),
-            golfHole: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#bbbbbb")}),
+            //golfHole: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#bbbbbb")}),
+            golfHole: new Material(new Textured_Shadow_Textured_Phong_Shader(1), {
+                color: hex_color("#000000"), ambient: 0.4, diffusivity: 0.6, specularity: 0.4, smoothness: 64,
+                //texture: new Texture("assets/flagpole.png", "NEAREST"),
+                color_texture: new Texture("assets/flagpole.png", "NEAREST"),
+                light_depth_texture: null
+            }),
             //grass: new Material(new Textured_Phong(), {
             grass: new Material(new Textured_Shadow_Textured_Phong_Shader(1), {
                 //color: hex_color("#000000"),
@@ -463,6 +472,7 @@ export class Assignment3 extends Scene {
         this.materials.flagPole.light_depth_texture = this.light_depth_texture
         this.materials.flag.light_depth_texture = this.light_depth_texture
         this.materials.golfBall.light_depth_texture = this.light_depth_texture
+        this.materials.golfHole.light_depth_texture = this.light_depth_texture
 
         this.lightDepthTextureSize = LIGHT_DEPTH_TEX_SIZE;
         gl.bindTexture(gl.TEXTURE_2D, this.lightDepthTexture);
@@ -743,7 +753,7 @@ export class Assignment3 extends Scene {
         //this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, this.materials.golfHole);
         this.display_golf_hole(context, program_state, hole_transform, shadow_pass);
 
-        let flagPole = hole_transform;
+        let flagPole = hole_transform.times(Mat4.translation(0,-0.67,0));
         flagPole = flagPole.times(Mat4.scale(.15,3,.15)).times(Mat4.translation(.1,.8,0));
         //this.shapes.cube1.draw(context,program_state,flagPole,this.materials.flagPole);
         this.shapes.cube1.draw(context,program_state,flagPole, shadow_pass? this.materials.flagPole : this.pure);
@@ -822,7 +832,7 @@ export class Assignment3 extends Scene {
             this.ball_location[1][3] = this.z_bound;
         }
 
-        if (this.ball_moving) {
+        if (this.ball_moving && shadow_pass) {
             this.grav_golf_ball(); // apply gravity before move
             this.move_golf_ball();
             if (this.ball_location[1][3] <= this.z_bound) {
@@ -938,10 +948,10 @@ export class Assignment3 extends Scene {
 
     display_golf_hole(context, program_state, hole_transform, shadow_pass) {
         for (let i = 0; i < 4; i++) {
-            this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, this.materials.golfHole);
+            this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, shadow_pass? this.materials.golfHole : this.pure);
             //this.shapes.threeDGolfHoleCorner.draw(context, program_state, hole_transform, shadow_pass? this.floor : this.pure);
             //this.shapes.golfHoleGrassEdge.draw(context, program_state, hole_transform, this.materials.grass);
-            this.shapes.golfHoleGrassEdge.draw(context, program_state, hole_transform, shadow_pass? this.floor : this.pure);
+            this.shapes.golfHoleGrassEdge.draw(context, program_state, hole_transform, shadow_pass? this.materials.grass : this.pure);
             hole_transform = hole_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
         }
     }
