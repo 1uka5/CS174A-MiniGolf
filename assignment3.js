@@ -563,8 +563,11 @@ export class Assignment3 extends Scene {
         this.cam_angle = (this.cam_angle + this.cam_dir * dt) % (2.0 * Math.PI);
         if (!this.enable_free_fly_cam && this.ball_location != null) {
             let desired = this.ball_location;
+            //desired = desired.times(Mat4.rotation(this.cam_angle, 0, 1, 0));
             desired = desired.times(Mat4.rotation(this.cam_angle, 0, 1, 0));
-            desired = desired.times(Mat4.translation(0, 20, 80));
+            desired = desired.times(Mat4.rotation(-30.0*Math.PI/180.0, 1, 0, 0));
+            //desired = desired.times(Mat4.translation(0, 20, 80));
+            desired = desired.times(Mat4.translation(0, 0, 60));
             desired = Mat4.inverse(desired);
             desired = desired.map((x, i) => Vector.from(program_state.camera_inverse[i]).mix(x, 0.1)); // blend factor second param
             // Small issue as suggested in spec: lag behind planet = not centered on planet anymore
@@ -618,6 +621,7 @@ export class Assignment3 extends Scene {
         program_state.projection_transform = Mat4.perspective(Math.PI / 4, context.width / context.height, 0.5, 500);
         this.render_scene(context, program_state, true, true, true);
 
+        /*
         // Step 3: display the textures
         this.shapes.square_2d.draw(context, program_state,
             Mat4.translation(-.99, .08, 0).times(
@@ -625,6 +629,8 @@ export class Assignment3 extends Scene {
             ),
             this.depth_tex.override({texture: this.lightDepthTexture})
         );
+
+         */
 
     }
 
@@ -637,7 +643,12 @@ export class Assignment3 extends Scene {
         let light_color = this.light_color;
         program_state.draw_shadow = draw_shadow;
 
-        this.shapes.sphere4.draw(context, program_state, Mat4.identity().times(Mat4.translation(light_position[0],light_position[1]+1,light_position[2])).times(Mat4.scale(0.2,0.2,0.2)), shadow_pass? this.materials.angleBall.override({ambient: 1, color: light_color}) : this.pure);
+        if (draw_light_source && shadow_pass) {
+            this.shapes.sphere.draw(context, program_state,
+                Mat4.translation(light_position[0], light_position[1], light_position[2]).times(Mat4.scale(.5,.5,.5)),
+                this.light_src.override({color: light_color}));
+        }
+        //this.shapes.sphere4.draw(context, program_state, Mat4.identity().times(Mat4.translation(light_position[0],light_position[1]+1,light_position[2])).times(Mat4.scale(0.2,0.2,0.2)), shadow_pass? this.materials.angleBall.override({ambient: 1, color: light_color}) : this.pure);
         this.shapes.golfBall.draw(context, program_state, this.ball_location, shadow_pass? this.materials.golfBall : this.pure);
 
         //this.shapes.torus.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
