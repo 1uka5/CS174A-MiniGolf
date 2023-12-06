@@ -218,7 +218,7 @@ export class Assignment3 extends Scene {
                 color_texture: new Texture("assets/170520_01_Golf_seamless_pattern_vector.jpg", "NEAREST"),
                 light_depth_texture: null
             }),
-            angleBall: new Material(new defs.Phong_Shader(), {color: hex_color("#000000")}),
+            angleBall: new Material(new defs.Phong_Shader(), {color: hex_color("#c00000")}),
             golfHole: new Material(new defs.Phong_Shader(), {ambient: .4, diffusivity: .6, color: hex_color("#bbbbbb")}),
             //grass: new Material(new Textured_Phong(), {
             grass: new Material(new Textured_Shadow_Textured_Phong_Shader(1), {
@@ -575,16 +575,16 @@ export class Assignment3 extends Scene {
 
         // Test rotate light
         let light_transform = vec4(5, 5, 0, 1);
-        let light_color = hex_color("#ffffff");
+        this.light_color = hex_color("#ffffff");
         //light_transform = vec4(2.5+2.5*Math.sin(t), 30, 2.5+2.5*Math.cos(t), 1);
-        light_transform = vec4(this.ball_location[0][3], this.ball_location[1][3]+15, this.ball_location[2][3], 1);
+        light_transform = vec4(this.ball_location[0][3]+2.5*Math.sin(t), this.ball_location[1][3]+15, this.ball_location[2][3]+2.5*Math.cos(t), 1);
         //light_transform = vec4(this.ball_location[0][3], 100, this.ball_location[2][3], 1);
         if (this.ball_moving) {
-            light_color = hex_color("#ff8888");
+            this.light_color = hex_color("#ff8888");
         } else {
-            light_color = hex_color("#ffffff");
+            this.light_color = hex_color("#ffffff");
         }
-        program_state.lights = [new Light(light_transform, light_color, 1000)];
+        program_state.lights = [new Light(light_transform, this.light_color, 1000)];
 
         // This is a rough target of the light.
         // Although the light is point light, we need a target to set the POV of the light
@@ -637,6 +637,7 @@ export class Assignment3 extends Scene {
         let light_color = this.light_color;
         program_state.draw_shadow = draw_shadow;
 
+        this.shapes.sphere4.draw(context, program_state, Mat4.identity().times(Mat4.translation(light_position[0],light_position[1]+1,light_position[2])).times(Mat4.scale(0.2,0.2,0.2)), shadow_pass? this.materials.angleBall.override({ambient: 1, color: light_color}) : this.pure);
         this.shapes.golfBall.draw(context, program_state, this.ball_location, shadow_pass? this.materials.golfBall : this.pure);
 
         //this.shapes.torus.draw(context, program_state, model_transform, this.materials.test.override({color: yellow}));
@@ -741,6 +742,13 @@ export class Assignment3 extends Scene {
         //this.shapes.cube1.draw(context,program_state,flag,this.materials.flag);
         this.shapes.cube1.draw(context,program_state,flag, shadow_pass? this.materials.flag : this.pure);
 
+
+        // Misc shadow sources
+        let cloud_tf = Mat4.identity();
+        cloud_tf = cloud_tf.times(Mat4.translation(0,10,0));
+        cloud_tf = cloud_tf.times(Mat4.rotation(90.0*Math.PI/180.0,1,0,0));
+        cloud_tf = cloud_tf.times(Mat4.scale(5,5,1));
+        this.shapes.golfBall.draw(context, program_state,cloud_tf, shadow_pass? this.materials.flag : this.pure);
         
 
         //adds very basic boundaries
@@ -817,7 +825,8 @@ export class Assignment3 extends Scene {
         //this.shapes.golfBall.draw(context, program_state, this.ball_location, shadow_pass? this.materials.golfBall : this.pure);
 
         // Draw circle on screen
-        this.shapes.circle.draw(context, program_state, this.cam_loc.times(Mat4.translation(6.25,-3,-10)), this.materials.compass);
+        this.shapes.circle.draw(context, program_state, this.cam_loc.times(Mat4.translation(6.25,-3,-10)), shadow_pass? this.materials.compass : this.pure);
+        //this.shapes.circle.draw(context, program_state, program_state.camera_transform.times(Mat4.translation(6.25,-3,-10)), this.materials.compass);
         // Mouse picking from main-canvas in index.html
         //this.canv = document.querySelector("#main-canvas.canvas-widget");
         //let canvelem = document.getElementById("main-canvas");

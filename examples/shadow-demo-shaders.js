@@ -513,6 +513,7 @@ export class Textured_Shadow_Textured_Phong_Shader extends defs.Phong_Shader {
                 float PCF_shadow(vec2 center, float projected_depth) {
                     float shadow = 0.0;
                     float texel_size = 1.0 / light_texture_size;
+                    //float texel_size = 0.1 / light_texture_size;
                     for(int x = -1; x <= 1; ++x)
                     {
                         for(int y = -1; y <= 1; ++y)
@@ -528,8 +529,8 @@ export class Textured_Shadow_Textured_Phong_Shader extends defs.Phong_Shader {
                 void main(){
                     // Sample the texture image in the correct place:
                     vec4 tex_color = texture2D( texture, f_tex_coord );
-                    //if (!use_texture)
-                        //tex_color = vec4(0, 0, 0, 1);
+                    if (!use_texture)
+                        tex_color = vec4(0, 0, 0, 1);
                     if( tex_color.w < .01 ) discard;
                     
                     // Compute an initial (ambient) color:
@@ -559,10 +560,11 @@ export class Textured_Shadow_Textured_Phong_Shader extends defs.Phong_Shader {
                               
                         float shadowness = PCF_shadow(light_tex_coord.xy, projected_depth);
                         
-                        if (inRange && shadowness > 0.3) {
+                        if (inRange && shadowness > 0.001) {
                             diffuse *= 0.2 + 0.8 * (1.0 - shadowness);
                             specular *= 1.0 - shadowness;
                             gl_FragColor.xyz *= 0.5; // Debug
+                            //gl_FragColor.xyz *= (1.0-shadowness); // Debug
                         }
                     }
                     
