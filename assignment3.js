@@ -360,6 +360,8 @@ export class Assignment3 extends Scene {
             }
         });
 
+        this.count_hits = 0;
+
     }
 
 
@@ -372,7 +374,8 @@ export class Assignment3 extends Scene {
                 /*if(this.angle_ball_rotation) {
                     this.angle_handler();
                 }*/
-                this.ball_moving = true}
+                this.ball_moving = true;
+                this.count_hits += 1;}
             });
         this.new_line();
         //for now, allow simple direction reversal
@@ -450,6 +453,15 @@ export class Assignment3 extends Scene {
         this.hit_direction_change = false;
 
         this.hit_power = this.power_speed_ratio; // trying to make small ball further away from golf ball after golf ball moves but not working
+        if(this.count_hits === 5){
+            alert('Wow, at five strokes already?');
+        }
+        if(this.count_hits === 10){
+            alert('Ten strokes\n Maybe golf isn\'t the game for you.');
+        }
+        if(this.count_hits === 100){
+            alert('Just give up lol');
+        }
     }
 
     get_norm_mult() {
@@ -816,6 +828,14 @@ export class Assignment3 extends Scene {
                 this.x_bound_low = 98.0;
                 this.y_bound_low = -2.0;
                 this.y_bound_high = 2.0;
+                if(!this.entered_hole){
+                    if(this.count_hits === 1){
+                        alert('Hole in one')
+                    }
+                    else {
+                        alert('You win! \nScore: ' + this.count_hits);
+                    }
+                }
                 this.entered_hole = true;
             } else {
                 this.z_bound = 70.0 / Math.sqrt(3.0) + 1.00;
