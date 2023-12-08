@@ -7,6 +7,9 @@ import {Scene_To_Texture_Demo} from "./examples/scene-to-texture-demo.js"
 import {Surfaces_Demo} from "./examples/surfaces-demo.js"
 import {Text_Demo} from "./examples/text-demo.js"
 import {Transforms_Sandbox} from "./examples/transforms-sandbox.js"
+import {Shadow_Demo} from "./examples/shadow-demo.js"
+import {Control_Demo} from "./examples/control-demo.js"
+import {Mouse_Demo} from "./examples/mouse-demo.js"
 import {Assignment3} from "./assignment3.js";
 
 // Pull these names into this module's scope for convenience:
@@ -34,13 +37,17 @@ Object.assign(defs,
     {Surfaces_Demo},
     {Text_Demo},
     {Transforms_Sandbox},
-    {Assignment3}
-);
+    {Shadow_Demo},
+    {Mouse_Demo},
+    {Control_Demo},
+    {Assignment3});
 
 // ******************** End extra step
 
 // (Can define Main_Scene's class here)
 
+// const Main_Scene = Control_Demo;
+// const Main_Scene = Mouse_Demo;
 const Main_Scene = Assignment3;
 const Additional_Scenes = [];
 
