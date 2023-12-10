@@ -502,7 +502,6 @@ export class Assignment3 extends Scene {
         const light_position = vec4(5, 5, 0, 1);
         
         const t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
-        let model_transform = Mat4.identity();
 
         // Camera work
         this.cam_angle = (this.cam_angle + this.cam_dir * dt) % (2.0 * Math.PI);
@@ -561,7 +560,6 @@ export class Assignment3 extends Scene {
 
     render_scene(context, program_state, light_shadow_pass) {
         const t = program_state.animation_time / 1000, dt = program_state.animation_delta_time / 1000;
-        let model_transform = Mat4.identity();
 
         let light_position = this.light_position;
         let light_color = this.light_color;
@@ -576,7 +574,7 @@ export class Assignment3 extends Scene {
         this.shapes.golfBall.draw(context, program_state, this.ball_location, light_shadow_pass ? this.materials.golfBall : this.pure);
 
         // Ground 1
-        let ground_transform = model_transform.times(Mat4.scale(15,0.01,15));
+        let ground_transform = Mat4.scale(15,0.01,15);
         this.shapes.flat_terrain.draw(context, program_state, ground_transform, light_shadow_pass ? this.materials.sand : this.pure);
         let wall_transform = Mat4.identity();
         for (let i = 0; i < 4; i++) {
@@ -593,7 +591,7 @@ export class Assignment3 extends Scene {
         // Slope 1
         let my_m = Mat4.identity();
         my_m[1][0] = 17.5*2.0/Math.sqrt(3.0)*100.0; // Sheer to match slope
-        let slope_transform = model_transform.times(Mat4.translation(50,17.5*2.0/Math.sqrt(3.0),0));
+        let slope_transform = Mat4.translation(50,17.5*2.0/Math.sqrt(3.0),0);
         slope_transform = slope_transform.times(Mat4.scale(35,0.01,15));
         slope_transform = slope_transform.times(my_m);
         this.shapes.flat_terrain.draw(context, program_state, slope_transform, light_shadow_pass ? this.materials.grass : this.pure);
@@ -751,6 +749,22 @@ export class Assignment3 extends Scene {
             this.ball_speed = this.hit_power / this.power_speed_ratio;
             this.set_angle_ball_location();
             this.shapes.angleBall.draw(context,program_state,this.angle_ball_location,this.materials.angleBall);
+        }
+    }
+
+    ground_one(context, program_state, light_shadow_pass) {
+        let ground_transform = Mat4.scale(15,0.01,15);
+        this.shapes.flat_terrain.draw(context, program_state, ground_transform, light_shadow_pass ? this.materials.sand : this.pure);
+        let wall_transform = Mat4.identity();
+        for (let i = 0; i < 4; i++) {
+            wall_transform = wall_transform.times(Mat4.translation(15,0,0));
+            wall_transform = wall_transform.times(Mat4.scale(0.1,1,15.1));
+            if (i !== 0) {
+                this.shapes.wall.draw(context, program_state, wall_transform, light_shadow_pass ? this.materials.wall : this.pure);
+            }
+            wall_transform = wall_transform.times(Mat4.scale(10,1,1/15.1));
+            wall_transform = wall_transform.times(Mat4.translation(-15,0,0));
+            wall_transform = wall_transform.times(Mat4.rotation(90*(Math.PI/180), 0, 1, 0));
         }
     }
 
